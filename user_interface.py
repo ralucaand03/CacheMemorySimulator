@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-
+from replacement_policies import LRUalghorithm,FIFOalgorithm,RANDOMalgorithm
 class UserInterface:
     def __init__(self):
         self.window = tk.Tk()
@@ -24,7 +24,8 @@ class UserInterface:
         self.write_hit_policy = tk.StringVar(value="write-back")
         self.write_miss_policy = tk.StringVar(value="write-allocate")
         self.replacement_policy = tk.StringVar(value="LRU")
-
+        self.capacity = tk.IntVar()
+        self.input = tk.StringVar()
         self.setup_ui()
 
     def center_window(self):
@@ -46,7 +47,7 @@ class UserInterface:
 
     def setup_ui(self):
         # Create main_container for left and right division
-        main_container = ttk.Frame(self.window, padding="5", style="MainFrame.TFrame")  # Reduced padding
+        main_container = ttk.Frame(self.window, padding="5", style="MainFrame.TFrame") 
         main_container.grid(row=0, column=0, sticky="nsew")
         self.window.grid_rowconfigure(0, weight=1)
         self.window.grid_columnconfigure(0, weight=1)
@@ -125,6 +126,15 @@ class UserInterface:
         replacement_menu = ttk.OptionMenu(configuration_container, self.replacement_policy, "LRU", "LRU", "FIFO", "Random")
         replacement_menu.config(width=option_menu_width)
         replacement_menu.grid(row=6, column=1)
+        # Place the "Capacity" label and entry below the existing options
+        ttk.Label(configuration_container, text="Capacity:", font=(self.font_container, 14), 
+                foreground=self.font_color_1, background=self.background_container).grid(row=7, column=0, sticky=tk.W, pady=3)
+        tk.Entry(configuration_container, textvariable=self.capacity, width=entry_width).grid(row=7, column=1)
+
+        # Place the "Input" label and entry in the next row
+        ttk.Label(configuration_container, text="Input:", font=(self.font_container, 14), 
+                foreground=self.font_color_1, background=self.background_container).grid(row=8, column=0, sticky=tk.W, pady=3)
+        tk.Entry(configuration_container, textvariable=self.input, width=entry_width).grid(row=8, column=1)
 
         # Place the `Run Simulation` button in the third row of `container_left`
         run_button = tk.Button(container_left, text="Run Simulation", command=self.run_simulation, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 12), padx=15, pady=8)
@@ -159,16 +169,70 @@ class UserInterface:
         messagebox.showinfo("Set Associative Algorithm", "You have selected the Set Associative Cache Algorithm.")
 
     def run_simulation(self):
-        results = {
-            "Cache Size": self.cache_size.get(),
-            "Address Width": self.address_width.get(),
-            "Block Size": self.block_size.get(),
-            "Associativity": self.associativity.get(),
-            "Write Hit Policy": self.write_hit_policy.get(),
-            "Write Miss Policy": self.write_miss_policy.get(),
-            "Replacement Policy": self.replacement_policy.get(),
-        }
-        self.display_results(results)
+        # Fetch user inputs
+        replacement_policy = self.replacement_policy.get()
+        capacity = self.capacity.get()
+        input_sequence = self.input.get()
+
+        if replacement_policy == "LRU":
+            try:
+                access_sequence = list(map(int, input_sequence.split(',')))
+            except ValueError:
+                messagebox.showerror("Invalid Input", "Input sequence must be comma-separated integers.")
+                return
+            lru_simulator = LRUalghorithm(capacity)
+            simulation_results = []
+            for item in access_sequence:
+                lru_simulator.access(item)
+                simulation_results.append(list(lru_simulator.cache.keys())) 
+            results = {
+                "Replacement Policy": replacement_policy,
+                "Capacity": capacity,
+                "Access Sequence": input_sequence,
+                "Cache States": "\n".join([f"Step {i + 1}: {state}" for i, state in enumerate(simulation_results)]),
+                "Final Cache State": ", ".join(map(str, lru_simulator.cache.keys())),
+            }
+            self.display_results(results)
+
+        elif replacement_policy == "FIFO":
+            try:
+                access_sequence = list(map(int, input_sequence.split(',')))
+            except ValueError:
+                messagebox.showerror("Invalid Input", "Input sequence must be comma-separated integers.")
+                return
+            fifo_simulator = FIFOalgorithm(capacity)
+            simulation_results = []
+            for item in access_sequence:
+                fifo_simulator.access(item)
+                simulation_results.append(list(fifo_simulator.cache)) 
+            results = {
+                "Replacement Policy": replacement_policy,
+                "Capacity": capacity,
+                "Access Sequence": input_sequence,
+                "Cache States": "\n".join([f"Step {i + 1}: {state}" for i, state in enumerate(simulation_results)]),
+                "Final Cache State": ", ".join(map(str, fifo_simulator.cache)),
+            }
+            self.display_results(results)
+
+        elif replacement_policy == "Random":
+            try:
+                access_sequence = list(map(int, input_sequence.split(',')))
+            except ValueError:
+                messagebox.showerror("Invalid Input", "Input sequence must be comma-separated integers.")
+                return
+            random_simulator = RANDOMalgorithm(capacity)
+            simulation_results = []
+            for item in access_sequence:
+                random_simulator.access(item)
+                simulation_results.append(list(random_simulator.cache))
+            results = {
+                "Replacement Policy": replacement_policy,
+                "Capacity": capacity,
+                "Access Sequence": input_sequence,
+                "Cache States": "\n".join([f"Step {i + 1}: {state}" for i, state in enumerate(simulation_results)]),
+                "Final Cache State": ", ".join(map(str, random_simulator.cache)),
+            }
+            self.display_results(results)
 
     def display_results(self, results):
         result_text = "\n".join(f"{key}: {value}" for key, value in results.items())
