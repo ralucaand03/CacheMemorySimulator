@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from replacement_policies import LRUalghorithm,FIFOalgorithm,RANDOMalgorithm
+from simulation import Simulation
 class UserInterface:
     def __init__(self):
         self.window = tk.Tk()
@@ -13,6 +13,7 @@ class UserInterface:
         self.font_color_1 = "white"
         self.background_main = "#23967F"
         self.background_container = "#292F36"
+        self.color_pink= "#E56B70"
         self.font_container = "Cascadia Code"
         self.btn_color = "#6874E8"
 
@@ -26,6 +27,7 @@ class UserInterface:
         self.replacement_policy = tk.StringVar(value="LRU")
         self.capacity = tk.IntVar()
         self.input = tk.StringVar()
+        self.text_boxes = [] 
         self.setup_ui()
 
     def center_window(self):
@@ -47,7 +49,7 @@ class UserInterface:
 
     def setup_ui(self):
         # Create main_container for left and right division
-        main_container = ttk.Frame(self.window, padding="5", style="MainFrame.TFrame") 
+        main_container = ttk.Frame(self.window, padding="5", style="MainFrame.TFrame")
         main_container.grid(row=0, column=0, sticky="nsew")
         self.window.grid_rowconfigure(0, weight=1)
         self.window.grid_columnconfigure(0, weight=1)
@@ -94,70 +96,72 @@ class UserInterface:
         # Configure input fields within `configuration_container`
         entry_width = 20
         option_menu_width = 17
-        
+
         ttk.Label(configuration_container, text="Cache Size (bytes):", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=0, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
         tk.Entry(configuration_container, textvariable=self.cache_size, width=entry_width).grid(row=0, column=1)
-        
+
         ttk.Label(configuration_container, text="Address Width (bits):", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=1, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
         tk.Entry(configuration_container, textvariable=self.address_width, width=entry_width).grid(row=1, column=1)
-        
+
         ttk.Label(configuration_container, text="Block Size (bytes):", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=2, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
-        
+
         block_size_menu = ttk.OptionMenu(configuration_container, self.block_size, 2, 2, 4, 8)
         block_size_menu.config(width=option_menu_width)
         block_size_menu.grid(row=2, column=1)
-        
+
         ttk.Label(configuration_container, text="Associativity (ways):", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=3, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
         associativity_menu = ttk.OptionMenu(configuration_container, self.associativity, 1, 1, 2, 4)
         associativity_menu.config(width=option_menu_width)
         associativity_menu.grid(row=3, column=1)
-        
+
         ttk.Label(configuration_container, text="Write Hit Policy:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=4, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
         write_hit_menu = ttk.OptionMenu(configuration_container, self.write_hit_policy, "write-back", "write-back", "write-through")
         write_hit_menu.config(width=option_menu_width)
         write_hit_menu.grid(row=4, column=1)
-        
+
         ttk.Label(configuration_container, text="Write Miss Policy:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=5, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
         write_miss_menu = ttk.OptionMenu(configuration_container, self.write_miss_policy, "write-allocate", "write-allocate", "no-write-allocate")
         write_miss_menu.config(width=option_menu_width)
         write_miss_menu.grid(row=5, column=1)
-        
+
         ttk.Label(configuration_container, text="Replacement Policy:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=6, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
         replacement_menu = ttk.OptionMenu(configuration_container, self.replacement_policy, "LRU", "LRU", "FIFO", "Random")
         replacement_menu.config(width=option_menu_width)
         replacement_menu.grid(row=6, column=1)
-        # Place the "Capacity" label and entry below the existing options
-        ttk.Label(configuration_container, text="Capacity:", font=(self.font_container, 14), 
-                foreground=self.font_color_1, background=self.background_container).grid(row=7, column=0, sticky=tk.W, pady=3)
+
+        ttk.Label(configuration_container, text="Capacity:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=7, column=0, sticky=tk.W, pady=3)
         tk.Entry(configuration_container, textvariable=self.capacity, width=entry_width).grid(row=7, column=1)
 
         # Place the "Input" label and entry in the next row
-        ttk.Label(configuration_container, text="Input:", font=(self.font_container, 14), 
-                foreground=self.font_color_1, background=self.background_container).grid(row=8, column=0, sticky=tk.W, pady=3)
+        ttk.Label(configuration_container, text="Input:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=8, column=0, sticky=tk.W, pady=3)
         tk.Entry(configuration_container, textvariable=self.input, width=entry_width).grid(row=8, column=1)
 
         # Place the `Run Simulation` button in the third row of `container_left`
         run_button = tk.Button(container_left, text="Run Simulation", command=self.run_simulation, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 12), padx=15, pady=8)
-        run_button.grid(row=2, column=0, columnspan=2, pady=15)  # Adjusted padding
+        run_button.grid(row=2, column=0, columnspan=2, pady=15) 
 
         # Add buttons for the different cache algorithms in `container_right`
         algorithm_buttons_frame = ttk.Frame(container_right, padding="5", style="MainFrame.TFrame")
-        algorithm_buttons_frame.pack(padx=10, pady=10, fill="x")
+        algorithm_buttons_frame.grid(row=0, column=0, sticky="nsew")  
 
         # Create the buttons for cache algorithms
-        direct_mapped_button = tk.Button(algorithm_buttons_frame, text="Direct-Mapped Cache", command=self.direct_mapped_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=24)  # Smaller padding, font size, and width
-        direct_mapped_button.pack(side="left", padx=5)
+        direct_mapped_button = tk.Button(algorithm_buttons_frame, text="Direct-Mapped Cache", command=self.direct_mapped_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=30)
+        direct_mapped_button.grid(row=0, column=0, padx=5)
 
-        fully_associative_button = tk.Button(algorithm_buttons_frame, text="Fully Associative Cache", command=self.fully_associative_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=24)  # Smaller padding, font size, and width
-        fully_associative_button.pack(side="left", padx=5)
+        fully_associative_button = tk.Button(algorithm_buttons_frame, text="Fully Associative Cache", command=self.fully_associative_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=30)
+        fully_associative_button.grid(row=0, column=1, padx=5)
 
-        set_associative_button = tk.Button(algorithm_buttons_frame, text="Set Associative Cache", command=self.set_associative_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=24)  # Smaller padding, font size, and width
-        set_associative_button.pack(side="left", padx=5)
+        set_associative_button = tk.Button(algorithm_buttons_frame, text="Set Associative Cache", command=self.set_associative_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=30)
+        set_associative_button.grid(row=0, column=2, padx=5)
 
+        # Create `output_container` for cache output
+        self.output_container = ttk.Frame(container_right, padding="5", style="ConfigFrame.TFrame")
+        self.output_container.grid(row=1, column=0, sticky="nsew")
 
-        # Placeholder content for `container_right` (below buttons)
-        placeholder_label = ttk.Label(container_right, text="Additional Features Here", font=(self.font_container, 14), background=self.background_container, foreground="white")
-        placeholder_label.pack(expand=True)
+        # Configure `container_right` rows and columns
+        container_right.grid_rowconfigure(0, weight=1)
+        container_right.grid_rowconfigure(1, weight=2)
+        container_right.grid_columnconfigure(0, weight=1)
 
     def direct_mapped_algorithm(self):
         messagebox.showinfo("Direct-Mapped Algorithm", "You have selected the Direct-Mapped Cache Algorithm.")
@@ -168,71 +172,6 @@ class UserInterface:
     def set_associative_algorithm(self):
         messagebox.showinfo("Set Associative Algorithm", "You have selected the Set Associative Cache Algorithm.")
 
-    def run_simulation(self):
-        # Fetch user inputs
-        replacement_policy = self.replacement_policy.get()
-        capacity = self.capacity.get()
-        input_sequence = self.input.get()
-
-        if replacement_policy == "LRU":
-            try:
-                access_sequence = list(map(int, input_sequence.split(',')))
-            except ValueError:
-                messagebox.showerror("Invalid Input", "Input sequence must be comma-separated integers.")
-                return
-            lru_simulator = LRUalghorithm(capacity)
-            simulation_results = []
-            for item in access_sequence:
-                lru_simulator.access(item)
-                simulation_results.append(list(lru_simulator.cache.keys())) 
-            results = {
-                "Replacement Policy": replacement_policy,
-                "Capacity": capacity,
-                "Access Sequence": input_sequence,
-                "Cache States": "\n".join([f"Step {i + 1}: {state}" for i, state in enumerate(simulation_results)]),
-                "Final Cache State": ", ".join(map(str, lru_simulator.cache.keys())),
-            }
-            self.display_results(results)
-
-        elif replacement_policy == "FIFO":
-            try:
-                access_sequence = list(map(int, input_sequence.split(',')))
-            except ValueError:
-                messagebox.showerror("Invalid Input", "Input sequence must be comma-separated integers.")
-                return
-            fifo_simulator = FIFOalgorithm(capacity)
-            simulation_results = []
-            for item in access_sequence:
-                fifo_simulator.access(item)
-                simulation_results.append(list(fifo_simulator.cache)) 
-            results = {
-                "Replacement Policy": replacement_policy,
-                "Capacity": capacity,
-                "Access Sequence": input_sequence,
-                "Cache States": "\n".join([f"Step {i + 1}: {state}" for i, state in enumerate(simulation_results)]),
-                "Final Cache State": ", ".join(map(str, fifo_simulator.cache)),
-            }
-            self.display_results(results)
-
-        elif replacement_policy == "Random":
-            try:
-                access_sequence = list(map(int, input_sequence.split(',')))
-            except ValueError:
-                messagebox.showerror("Invalid Input", "Input sequence must be comma-separated integers.")
-                return
-            random_simulator = RANDOMalgorithm(capacity)
-            simulation_results = []
-            for item in access_sequence:
-                random_simulator.access(item)
-                simulation_results.append(list(random_simulator.cache))
-            results = {
-                "Replacement Policy": replacement_policy,
-                "Capacity": capacity,
-                "Access Sequence": input_sequence,
-                "Cache States": "\n".join([f"Step {i + 1}: {state}" for i, state in enumerate(simulation_results)]),
-                "Final Cache State": ", ".join(map(str, random_simulator.cache)),
-            }
-            self.display_results(results)
 
     def display_results(self, results):
         result_text = "\n".join(f"{key}: {value}" for key, value in results.items())
@@ -240,3 +179,37 @@ class UserInterface:
 
     def start(self):
         self.window.mainloop()
+
+    def create_frame_labels(self, capacity):
+        for frame_label in getattr(self, "frame_labels", []):
+            frame_label.destroy()
+        self.frame_labels = []
+        for i in range(capacity):
+            frame_label = tk.Label(
+                self.output_container,
+                width=11, height=2,
+                font=("Cascadia Code", 14),
+                bg="white",
+                relief="solid",
+                borderwidth=1
+            )
+            frame_label.grid(row=i // 6, column=i%6, pady=5, padx=5, sticky="nsew")
+            self.frame_labels.append(frame_label)
+
+    def update_canvas(self, current_page, cache):
+            # Reset all frame labels to default state
+            for frame_label in self.frame_labels:
+                frame_label.config(bg="white", text="")
+            # Update the visualization based on cache content
+            for i, page in enumerate(cache):
+                if i < len(self.frame_labels):
+                    if current_page == page:
+                        self.frame_labels[i].config(bg=self.background_main, text=str(page))  # Cache hit 
+                    else:
+                        self.frame_labels[i].config(bg=self.color_pink, text=str(page))  # Cache miss
+
+    def run_simulation(self):
+        simulation = Simulation(self)
+        simulation.run_simulation()
+
+    
