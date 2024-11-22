@@ -19,15 +19,16 @@ class UserInterface:
         self.btn_color = "#6874E8"
 
         # User input variables
-        self.cache_size = tk.IntVar()
-        self.address_width = tk.IntVar()
+        self.cache_size = tk.IntVar(value=16)
+        self.address_width = tk.IntVar(value=6)
         self.block_size = tk.IntVar(value=2)
         self.associativity = tk.IntVar(value=1)
         self.write_hit_policy = tk.StringVar(value="write-back")
         self.write_miss_policy = tk.StringVar(value="write-allocate")
         self.replacement_policy = tk.StringVar(value="LRU")
-        self.capacity = tk.IntVar()
-        self.input = tk.StringVar()
+        self.instuction = tk.StringVar(value="LOAD")
+        self.capacity = tk.IntVar(value = 4)
+        self.input = tk.StringVar(value ="1,2,3")
         self.text_boxes = [] 
         self.setup_ui()
 
@@ -91,22 +92,22 @@ class UserInterface:
         cache_config_title.grid(row=0, column=0, columnspan=2, pady=(0, 10), sticky="ew")  # Reduced vertical padding
 
         # Create `configuration_container` for input fields within `background_container`
-        configuration_container = ttk.Frame(background_container, padding="5", style="ConfigFrame.TFrame")  # Reduced padding
-        configuration_container.grid(row=1, column=0, columnspan=2, pady=5, padx=5, sticky="ew")  # Reduced padding
+        self.configuration_container = ttk.Frame(background_container, padding="5", style="ConfigFrame.TFrame")  # Reduced padding
+        self.configuration_container.grid(row=1, column=0, columnspan=2, pady=5, padx=5, sticky="ew")  # Reduced padding
 
         # Configure input fields within `configuration_container`
-        entry_width = 20
+        entry_width = 22
         option_menu_width = 17
 
-        ttk.Label(configuration_container, text="Cache Size (bytes):", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=0, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
-        tk.Entry(configuration_container, textvariable=self.cache_size, width=entry_width).grid(row=0, column=1)
+        ttk.Label(self.configuration_container, text="Cache Size (bytes):", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=0, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
+        tk.Entry(self.configuration_container, textvariable=self.cache_size, width=entry_width).grid(row=0, column=1)
 
-        ttk.Label(configuration_container, text="Address Width (bits):", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=1, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
-        tk.Entry(configuration_container, textvariable=self.address_width, width=entry_width).grid(row=1, column=1)
+        ttk.Label(self.configuration_container, text="Address Width (bits):", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=1, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
+        tk.Entry(self.configuration_container, textvariable=self.address_width, width=entry_width).grid(row=1, column=1)
 
-        ttk.Label(configuration_container, text="Block Size (bytes):", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=2, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
+        ttk.Label(self.configuration_container, text="Block Size (bytes):", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=2, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
 
-        block_size_menu = ttk.OptionMenu(configuration_container, self.block_size, 2, 2, 4, 8)
+        block_size_menu = ttk.OptionMenu(self.configuration_container, self.block_size, 2, 2, 4, 8)
         block_size_menu.config(width=option_menu_width)
         block_size_menu.grid(row=2, column=1)
 
@@ -115,27 +116,32 @@ class UserInterface:
         # associativity_menu.config(width=option_menu_width)
         # associativity_menu.grid(row=3, column=1)
 
-        ttk.Label(configuration_container, text="Write Hit Policy:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=4, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
-        write_hit_menu = ttk.OptionMenu(configuration_container, self.write_hit_policy, "write-back", "write-back", "write-through")
+        ttk.Label(self.configuration_container, text="Write Hit Policy:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=3, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
+        write_hit_menu = ttk.OptionMenu(self.configuration_container, self.write_hit_policy, "write-back", "write-back", "write-through")
         write_hit_menu.config(width=option_menu_width)
-        write_hit_menu.grid(row=4, column=1)
+        write_hit_menu.grid(row=3, column=1)
 
-        ttk.Label(configuration_container, text="Write Miss Policy:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=5, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
-        write_miss_menu = ttk.OptionMenu(configuration_container, self.write_miss_policy, "write-allocate", "write-allocate", "no-write-allocate")
+        ttk.Label(self.configuration_container, text="Write Miss Policy:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=4, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
+        write_miss_menu = ttk.OptionMenu(self.configuration_container, self.write_miss_policy, "write-allocate", "write-allocate", "no-write-allocate")
         write_miss_menu.config(width=option_menu_width)
-        write_miss_menu.grid(row=5, column=1)
+        write_miss_menu.grid(row=4, column=1)
 
-        ttk.Label(configuration_container, text="Replacement Policy:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=6, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
-        replacement_menu = ttk.OptionMenu(configuration_container, self.replacement_policy, "LRU", "LRU", "FIFO", "Random")
+        ttk.Label(self.configuration_container, text="Replacement Policy:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=5, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
+        replacement_menu = ttk.OptionMenu(self.configuration_container, self.replacement_policy, "LRU", "LRU", "FIFO", "Random")
         replacement_menu.config(width=option_menu_width)
-        replacement_menu.grid(row=6, column=1)
+        replacement_menu.grid(row=5, column=1)
 
-        ttk.Label(configuration_container, text="Capacity:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=7, column=0, sticky=tk.W, pady=3)
-        tk.Entry(configuration_container, textvariable=self.capacity, width=entry_width).grid(row=7, column=1)
+        ttk.Label(self.configuration_container, text=".....................", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=6, column=0, sticky=tk.W, pady=3)
+        ttk.Label(self.configuration_container, text="..............", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=6, column=1, sticky=tk.W, pady=3)
+       
+
+        ttk.Label(self.configuration_container, text="Capacity:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=7, column=0, sticky=tk.W, pady=3)
+        tk.Entry(self.configuration_container, textvariable=self.capacity, width=entry_width).grid(row=7, column=1)
+
 
         # Place the "Input" label and entry in the next row
-        ttk.Label(configuration_container, text="Input:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=8, column=0, sticky=tk.W, pady=3)
-        tk.Entry(configuration_container, textvariable=self.input, width=entry_width).grid(row=8, column=1)
+        ttk.Label(self.configuration_container, text="Input:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=8, column=0, sticky=tk.W, pady=3)
+        tk.Entry(self.configuration_container, textvariable=self.input, width=entry_width).grid(row=8, column=1)
 
         # Place the `Run Simulation` button in the third row of `container_left`
         run_button = tk.Button(container_left, text="Run Simulation", command=self.run_simulation, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 12), padx=15, pady=8)
@@ -176,9 +182,16 @@ class UserInterface:
 #---------------------------------------------------------------------------------------------------------------------
 
     def direct_mapped_algorithm(self):
-        cache= Cache(self)        
+        cache = Cache(self)
         cache.direct_mapped()
-        
+
+        ttk.Label(self.configuration_container,text="Instruction:",font=(self.font_container, 14),foreground=self.font_color_1,background=self.background_container).grid(row=7, column=0, sticky=tk.W, pady=3)
+        instruction_menu = ttk.OptionMenu( self.configuration_container,self.instuction,   "LOAD","LOAD", "STORE")
+        instruction_menu.config(width=17) 
+        instruction_menu.grid(row=7, column=1)  
+        self.input.set("hex,hex") 
+
+
     def fully_associative_algorithm(self):
         messagebox.showinfo("Fully Associative Algorithm", "You have selected the Fully Associative Cache Algorithm.")
 
@@ -198,13 +211,7 @@ class UserInterface:
             frame_label.destroy()
         self.frame_labels = []
         for i in range(capacity):
-            frame_label = tk.Label(
-                self.output_container,
-                width=11, height=2,
-                font=("Cascadia Code", 14),
-                bg="white",
-                relief="solid",
-                borderwidth=1
+            frame_label = tk.Label(self.output_container, width=11, height=2,font=("Cascadia Code", 14),bg="white",relief="solid",borderwidth=1
             )
             frame_label.grid(row=i // 6, column=i%6, pady=5, padx=5, sticky="nsew")
             self.frame_labels.append(frame_label)
@@ -222,5 +229,3 @@ class UserInterface:
     def run_simulation(self):
         simulation = Simulation(self)
         simulation.run_simulation()
-
-    

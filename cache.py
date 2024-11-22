@@ -78,37 +78,32 @@ class Cache:
 
     def create_main_memory_table(self):
         try:
-            # Read data from main_memory.txt
-            with open("main_memory.txt", "r") as file:
-                lines = file.readlines()
+            # Total memory size derived from address width
+            total_memory_size = 2 ** self.address_width  # Example: 2^8 = 256 for 8-bit addresses
+            total_blocks = total_memory_size // self.block_size  # Total number of memory blocks
 
-            if not lines:
-                messagebox.showerror("Error", "main_memory.txt is empty.")
-                return
-
-            max_rows = self.cache_size * 4
-            rows_to_display = lines[:max_rows]
-
+            # Clear any existing widgets in the container
             for widget in self.ui.main_memory_container.winfo_children():
                 widget.destroy()
 
             # Add label above the table
             title_label = tk.Label(
                 self.ui.main_memory_container,
-                text="Memory Block",
+                text="Main Memory",
                 font=("Cascadia Code", 16, "bold"),
                 bg=self.ui.background_container,
                 fg=self.ui.font_color_1
             )
-            title_label.pack(side="top", anchor="ne", pady=(10, 14), padx=10)  # Position label on the top-right
+            title_label.pack(side="top", anchor="ne", pady=(10, 14), padx=10)
 
             # Create the frame for the table
             frame = tk.Frame(self.ui.main_memory_container)
             frame.pack(fill="both", expand=True)
 
-            
-            canvas = tk.Canvas(frame, height=  40, width=340)  # Set precise canvas dimensions
-            scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
+            # Set up canvas and scrollbars with fixed height and width
+            canvas = tk.Canvas(frame, height=40, width=340)
+            vertical_scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
+            horizontal_scrollbar = ttk.Scrollbar(frame, orient="horizontal", command=canvas.xview)
             scrollable_frame = ttk.Frame(canvas)
 
             scrollable_frame.bind(
@@ -116,23 +111,46 @@ class Cache:
                 lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
             )
 
+            # Create the scrollable window and set scrollbars
             canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-            canvas.configure(yscrollcommand=scrollbar.set)
+            canvas.configure(yscrollcommand=vertical_scrollbar.set, xscrollcommand=horizontal_scrollbar.set)
 
-            canvas.pack(side="left", fill="both", expand=False)
-            scrollbar.pack(side="right", fill="y")
+            canvas.grid(row=0, column=0, sticky="nsew")
+            
+            vertical_scrollbar.grid(row=0, column=1, sticky="ns")
 
-            for i, line in enumerate(rows_to_display):
-                address, data = line.strip().split(", ")
-                label_address = ttk.Label(scrollable_frame, text=address, width=10, anchor="center")
-                label_data = ttk.Label(scrollable_frame, text=data, width=10, anchor="center")
+            horizontal_scrollbar.grid(row=1, column=0, sticky="ew")
 
-                # Add to grid
-                label_address.grid(row=i, column=0, padx=2, pady=2, sticky="nsew")
-                label_data.grid(row=i, column=1, padx=2, pady=2, sticky="nsew")
+            # Generate main memory dynamically and display it in blocks and words
+            word_counter = 0
+            for block in range(total_blocks):
+                for word in range(self.block_size):
+                    word_label = ttk.Label(
+                        scrollable_frame, 
+                        text=f"B{block}W{word_counter}", 
+                        width=10, 
+                        anchor="center"
+                    )
+                    word_label.grid(
+                        row=(block * 2) + 1, column=word, padx=5, pady=2, sticky="nsew"
+                    )
+                    word_counter += 1
 
-        except FileNotFoundError:
-            messagebox.showerror("Error", "main_memory.txt not found.")
+            canvas.update_idletasks() 
+
+            if canvas.bbox("all")[3] > frame.winfo_height():
+                vertical_scrollbar.grid(row=0, column=1, sticky="ns")
+            else:
+                vertical_scrollbar.grid_forget()
+
+            if canvas.bbox("all")[2] > frame.winfo_width():
+                horizontal_scrollbar.grid(row=1, column=0, sticky="ew")
+            else:
+                horizontal_scrollbar.grid_forget()
+
+            frame.grid_columnconfigure(0, weight=0)
+            frame.grid_rowconfigure(0, weight=1)
+            frame.grid_rowconfigure(1, weight=0) 
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred: {e}")
 
@@ -150,9 +168,11 @@ class Cache:
         if self.address_width < self.cache_size.bit_length():
             messagebox.showerror("Input Error", "Address width must be large enough to address the entire cache size.")
             return False
-        return 
+        if self.address_width > 10 :
+            messagebox.showerror("Input Error", "Address width must be max 10")
+            return False
+        return True
     
 
     # Load = Read. Retrieves data from memory/cache.
     # Store = Write. Saves data to memory/cache.
-
