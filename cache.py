@@ -74,6 +74,7 @@ class Cache:
             )
             row_label.grid(row=2, column=col, padx=5, pady=0, sticky="nsew")
             self.create_main_memory_table()
+            self.create_cache_table()
 #---------------------------------------------------------------------------------------------------------------------
 
     def create_main_memory_table(self):
@@ -101,7 +102,7 @@ class Cache:
             frame.pack(fill="both", expand=True)
 
             # Set up canvas and scrollbars with fixed height and width
-            canvas = tk.Canvas(frame, height=40, width=340)
+            canvas = tk.Canvas(frame, height=40, width=350)
             vertical_scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
             horizontal_scrollbar = ttk.Scrollbar(frame, orient="horizontal", command=canvas.xview)
             scrollable_frame = ttk.Frame(canvas)
@@ -153,6 +154,133 @@ class Cache:
             frame.grid_rowconfigure(1, weight=0) 
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred: {e}")
+
+#---------------------------------------------------------------------------------------------------------------------
+    def create_cache_table(self):
+        try:
+            # Calculate the number of blocks
+            self.num_blocks = self.cache_size // self.block_size
+
+            # Clear any existing widgets in the container
+            for widget in self.ui.cache_memory_container.winfo_children():
+                widget.destroy()
+            # Add title label above the table
+            title_label = tk.Label(
+                self.ui.cache_memory_container,
+                text="Cache Memory",
+                font=("Cascadia Code", 16, "bold"),
+                bg=self.ui.background_container,
+                fg=self.ui.font_color_1
+            )
+            title_label.pack(side="top", anchor="nw", pady=(10, 5), padx=5)
+
+            # Create a frame for the table
+            frame = tk.Frame(self.ui.cache_memory_container)
+            frame.pack(fill="both", expand=True)
+
+            # Set up canvas and scrollbars
+            canvas = tk.Canvas(frame, height=210, width=280)
+            vertical_scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
+            scrollable_frame = ttk.Frame(canvas)
+
+            scrollable_frame.bind(
+                "<Configure>",
+                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+            )
+
+            # Create the scrollable window and set the vertical scrollbar
+            canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+            canvas.configure(yscrollcommand=vertical_scrollbar.set)
+            canvas.pack(side="left", fill="both", expand=True)
+            vertical_scrollbar.pack(side="right", fill="y")
+
+            # Create the table headers
+            headers = ["Index", "Valid", "Tag"] + [f"Byte{i}" for i in range(self.block_size)] + ["Dirty"]
+            for col, header in enumerate(headers):
+                header_label = tk.Label(
+                    scrollable_frame,
+                    text=header,
+                    width=6,
+                    height=1,
+                    font=("Cascadia Code", 10, "bold"),
+                    bg=self.ui.background_main,
+                    fg=self.ui.font_color_1,
+                    relief="solid",
+                    borderwidth=1
+                )
+                header_label.grid(row=0, column=col, padx=2, pady=2, sticky="nsew")
+
+            # Create the table rows
+            for row in range(self.num_blocks):
+                # Index column
+                tk.Label(
+                    scrollable_frame,
+                    text=f"{row}",
+                    width=8,
+                    height=1,
+                    font=("Cascadia Code", 10),
+                    bg=self.ui.font_color_1,
+                    fg=self.ui.background_main,
+                    relief="solid",
+                    borderwidth=0.5
+                ).grid(row=row + 1, column=0, padx=2, pady=1, sticky="nsew")
+
+                # Valid column
+                tk.Label(
+                    scrollable_frame,
+                    text="0",
+                    width=8,
+                    height=1,
+                    font=("Cascadia Code", 10),
+                    bg=self.ui.font_color_1,
+                    fg=self.ui.background_main,
+                    relief="solid",
+                    borderwidth=0.5
+                ).grid(row=row + 1, column=1, padx=2, pady=1, sticky="nsew")
+
+                # Tag column
+                tk.Label(
+                    scrollable_frame,
+                    text="-",
+                    width=8,
+                    height=1,
+                    font=("Cascadia Code", 10),
+                    bg=self.ui.font_color_1,
+                    fg=self.ui.background_main,
+                    relief="solid",
+                    borderwidth=0.5
+                ).grid(row=row + 1, column=2, padx=2, pady=1, sticky="nsew")
+
+                # Block data columns
+                for col in range(self.block_size):
+                    tk.Label(
+                        scrollable_frame,
+                        text="-",
+                        width=7,
+                        height=1,
+                        font=("Cascadia Code", 10),
+                        bg=self.ui.font_color_1,
+                        fg=self.ui.background_main,
+                        relief="solid",
+                        borderwidth=0.5
+                    ).grid(row=row + 1, column=3 + col, padx=2, pady=1, sticky="nsew")
+
+                # Dirty column
+                tk.Label(
+                    scrollable_frame,
+                    text="0",
+                    width=6,
+                    height=1,
+                    font=("Cascadia Code", 10),
+                    bg=self.ui.font_color_1,
+                    fg=self.ui.background_main,
+                    relief="solid",
+                    borderwidth=0.5
+                ).grid(row=row + 1, column=3 + self.block_size, padx=2, pady=1, sticky="nsew")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {e}")
+
 
 #---------------------------------------------------------------------------------------------------------------------
     def validate(self):

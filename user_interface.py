@@ -75,7 +75,7 @@ class UserInterface:
 
         # Set up title in the first row of `container_left`
         title_label = ttk.Label(container_left, text="Cache Memory Simulator", font=("Doto", 28, "bold"), foreground="white", background=self.background_main)
-        title_label.grid(row=0, column=0, columnspan=2, pady=(0, 15), sticky="ew")  # Reduced vertical padding
+        title_label.grid(row=0, column=0, columnspan=2, pady=(15, 20), sticky="ew")  # Reduced vertical padding
 
         # Create `background_container` with a colored background inside `container_left`
         background_container = ttk.Frame(container_left, padding="5", style="ConfigFrame.TFrame")  # Reduced padding
@@ -92,8 +92,8 @@ class UserInterface:
         cache_config_title.grid(row=0, column=0, columnspan=2, pady=(0, 10), sticky="ew")  # Reduced vertical padding
 
         # Create `configuration_container` for input fields within `background_container`
-        self.configuration_container = ttk.Frame(background_container, padding="5", style="ConfigFrame.TFrame")  # Reduced padding
-        self.configuration_container.grid(row=1, column=0, columnspan=2, pady=5, padx=5, sticky="ew")  # Reduced padding
+        self.configuration_container = ttk.Frame(background_container, padding="5", style="ConfigFrame.TFrame") 
+        self.configuration_container.grid(row=1, column=0, columnspan=2, pady=5, padx=5, sticky="ew") 
 
         # Configure input fields within `configuration_container`
         entry_width = 22
@@ -110,11 +110,6 @@ class UserInterface:
         block_size_menu = ttk.OptionMenu(self.configuration_container, self.block_size, 2, 2, 4, 8)
         block_size_menu.config(width=option_menu_width)
         block_size_menu.grid(row=2, column=1)
-
-        # ttk.Label(configuration_container, text="Associativity (ways):", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=3, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
-        # associativity_menu = ttk.OptionMenu(configuration_container, self.associativity, 1, 1, 2, 4)
-        # associativity_menu.config(width=option_menu_width)
-        # associativity_menu.grid(row=3, column=1)
 
         ttk.Label(self.configuration_container, text="Write Hit Policy:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=3, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
         write_hit_menu = ttk.OptionMenu(self.configuration_container, self.write_hit_policy, "write-back", "write-back", "write-through")
@@ -148,8 +143,8 @@ class UserInterface:
         run_button.grid(row=2, column=0, columnspan=2, pady=15) 
 
         # Add buttons for the different cache algorithms in `container_right`
-        algorithm_buttons_frame = ttk.Frame(container_right, padding="1", style="MainFrame.TFrame")
-        algorithm_buttons_frame.grid(row=0, column=0, sticky="n")  
+        algorithm_buttons_frame = ttk.Frame(container_right, padding="16", style="MainFrame.TFrame")
+        algorithm_buttons_frame.grid(row=0, column=0, pady=(8,10), sticky="n")  # Adjusted padding
 
         # Create the buttons for cache algorithms
         direct_mapped_button = tk.Button(algorithm_buttons_frame, text="Direct-Mapped Cache", command=self.direct_mapped_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=30)
@@ -168,16 +163,19 @@ class UserInterface:
         self.output_container.grid(row=0, column=0, sticky="nsew")
 
         # Create `main_memory_container` for main memory output
-        self.main_memory_container = ttk.Frame(rightrow, padding="2", style="ConfigFrame.TFrame")
+        self.main_memory_container = ttk.Frame(rightrow, padding="0", style="ConfigFrame.TFrame")
         self.main_memory_container.grid(row=0, column=1, sticky="nsew", padx=0, pady=0)  
         rightrow.grid_columnconfigure(1, weight=0)
 
-        cache_table = ttk.Frame(container_right, padding="5", style="ConfigFrame.TFrame")  # Reduced padding
+        cache_table = ttk.Frame(container_right, padding="5", style="ConfigFrame.TFrame")  
         cache_table.grid(row=2, column=0, padx=5, pady=0, sticky="nsew")  
 
         # Configure `container_right` rows and columns
         container_right.grid_rowconfigure(0, weight=1)
-        container_right.grid_rowconfigure(1, weight=18)  # Adjust the row weight to give more space to `main_memory_container`
+        container_right.grid_rowconfigure(1, weight=18) 
+        
+        self.cache_memory_container = ttk.Frame(container_right, padding="0", style="ConfigFrame.TFrame")
+        self.cache_memory_container.grid(row=2, column=0, sticky="nsew", padx=20, pady=15)  
 
 #---------------------------------------------------------------------------------------------------------------------
 
