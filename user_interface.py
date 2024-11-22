@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from simulation import Simulation
+from cache import Cache
 class UserInterface:
     def __init__(self):
         self.window = tk.Tk()
@@ -109,10 +110,10 @@ class UserInterface:
         block_size_menu.config(width=option_menu_width)
         block_size_menu.grid(row=2, column=1)
 
-        ttk.Label(configuration_container, text="Associativity (ways):", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=3, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
-        associativity_menu = ttk.OptionMenu(configuration_container, self.associativity, 1, 1, 2, 4)
-        associativity_menu.config(width=option_menu_width)
-        associativity_menu.grid(row=3, column=1)
+        # ttk.Label(configuration_container, text="Associativity (ways):", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=3, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
+        # associativity_menu = ttk.OptionMenu(configuration_container, self.associativity, 1, 1, 2, 4)
+        # associativity_menu.config(width=option_menu_width)
+        # associativity_menu.grid(row=3, column=1)
 
         ttk.Label(configuration_container, text="Write Hit Policy:", font=(self.font_container, 14), foreground=self.font_color_1, background=self.background_container).grid(row=4, column=0, sticky=tk.W, pady=3)  # Reduced vertical padding
         write_hit_menu = ttk.OptionMenu(configuration_container, self.write_hit_policy, "write-back", "write-back", "write-through")
@@ -141,8 +142,8 @@ class UserInterface:
         run_button.grid(row=2, column=0, columnspan=2, pady=15) 
 
         # Add buttons for the different cache algorithms in `container_right`
-        algorithm_buttons_frame = ttk.Frame(container_right, padding="5", style="MainFrame.TFrame")
-        algorithm_buttons_frame.grid(row=0, column=0, sticky="nsew")  
+        algorithm_buttons_frame = ttk.Frame(container_right, padding="1", style="MainFrame.TFrame")
+        algorithm_buttons_frame.grid(row=0, column=0, sticky="n")  
 
         # Create the buttons for cache algorithms
         direct_mapped_button = tk.Button(algorithm_buttons_frame, text="Direct-Mapped Cache", command=self.direct_mapped_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=30)
@@ -153,19 +154,31 @@ class UserInterface:
 
         set_associative_button = tk.Button(algorithm_buttons_frame, text="Set Associative Cache", command=self.set_associative_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=30)
         set_associative_button.grid(row=0, column=2, padx=5)
-
+        
+        rightrow = ttk.Frame(container_right, padding="5", style="ConfigFrame.TFrame")  
+        rightrow.grid(row=1, column=0, padx=5, pady=0, sticky="nsew")  
         # Create `output_container` for cache output
-        self.output_container = ttk.Frame(container_right, padding="5", style="ConfigFrame.TFrame")
-        self.output_container.grid(row=1, column=0, sticky="nsew")
+        self.output_container = ttk.Frame(rightrow, padding="2", style="ConfigFrame.TFrame")
+        self.output_container.grid(row=0, column=0, sticky="nsew")
+
+        # Create `main_memory_container` for main memory output
+        self.main_memory_container = ttk.Frame(rightrow, padding="2", style="ConfigFrame.TFrame")
+        self.main_memory_container.grid(row=0, column=1, sticky="nsew", padx=0, pady=0)  
+        rightrow.grid_columnconfigure(1, weight=0)
+
+        cache_table = ttk.Frame(container_right, padding="5", style="ConfigFrame.TFrame")  # Reduced padding
+        cache_table.grid(row=2, column=0, padx=5, pady=0, sticky="nsew")  
 
         # Configure `container_right` rows and columns
         container_right.grid_rowconfigure(0, weight=1)
-        container_right.grid_rowconfigure(1, weight=2)
-        container_right.grid_columnconfigure(0, weight=1)
+        container_right.grid_rowconfigure(1, weight=18)  # Adjust the row weight to give more space to `main_memory_container`
+
+#---------------------------------------------------------------------------------------------------------------------
 
     def direct_mapped_algorithm(self):
-        messagebox.showinfo("Direct-Mapped Algorithm", "You have selected the Direct-Mapped Cache Algorithm.")
-
+        cache= Cache(self)        
+        cache.direct_mapped()
+        
     def fully_associative_algorithm(self):
         messagebox.showinfo("Fully Associative Algorithm", "You have selected the Fully Associative Cache Algorithm.")
 
@@ -197,10 +210,8 @@ class UserInterface:
             self.frame_labels.append(frame_label)
 
     def update_canvas(self, current_page, cache):
-            # Reset all frame labels to default state
             for frame_label in self.frame_labels:
                 frame_label.config(bg="white", text="")
-            # Update the visualization based on cache content
             for i, page in enumerate(cache):
                 if i < len(self.frame_labels):
                     if current_page == page:

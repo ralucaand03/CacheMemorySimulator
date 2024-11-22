@@ -25,6 +25,8 @@ class LRUalghorithm:
     def display_cache(self):
         print("Current Cache:", list(self.cache.keys()))
 
+#---------------------------------------------------------------------------------------------------------------------
+
 class FIFOalgorithm:
     def __init__(self, capacity):
         self.capacity = capacity
@@ -48,6 +50,8 @@ class FIFOalgorithm:
     def display_cache(self):
         """Displays the current state of the cache."""
         print("Current Cache:", self.cache)
+
+#---------------------------------------------------------------------------------------------------------------------
 
 class RANDOMalgorithm:
     def __init__(self, capacity):
