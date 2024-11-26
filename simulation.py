@@ -55,3 +55,4 @@ class Simulation:
     
     def update_pages_display(self, cache):
         self.label_pages.config(text=f"Used pages: {', '.join(map(str, current_memory))}")
+

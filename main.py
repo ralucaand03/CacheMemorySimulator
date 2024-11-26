@@ -1,4 +1,4 @@
-# main.py
+# ------------------------------ main.py
 
 from user_interface import UserInterface
 

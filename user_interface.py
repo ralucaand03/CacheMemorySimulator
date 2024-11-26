@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from simulation import Simulation
-from cache import Cache
+from direct_mapped_cache import Direct_mapped_cache
 class UserInterface:
     def __init__(self):
         self.window = tk.Tk()
@@ -29,6 +29,8 @@ class UserInterface:
         self.instuction = tk.StringVar(value="LOAD")
         self.capacity = tk.IntVar(value = 4)
         self.input = tk.StringVar(value ="1,2,3")
+        self.dir = 0
+        self.binary_value = 0
         self.text_boxes = [] 
         self.setup_ui()
 
@@ -37,15 +39,12 @@ class UserInterface:
         screen_width = self.window.winfo_screenwidth()
         screen_height = self.window.winfo_screenheight()
         
-        # Define the desired window size
         window_width = 1380
         window_height = 600
 
-        # Calculate the position to center the window on the screen
         position_top = int(screen_height / 2 - window_height / 2)
         position_right = int(screen_width / 2 - window_width / 2)
 
-        # Set the window size and position
         self.window.geometry(f'{window_width}x{window_height}+{position_right}+{position_top}')
 
 
@@ -62,12 +61,12 @@ class UserInterface:
         style.configure("ConfigFrame.TFrame", background=self.background_container)
 
         # Configure `container_left` (left side) inside main_container
-        container_left = ttk.Frame(main_container, padding="5", style="MainFrame.TFrame")  # Reduced padding
-        container_left.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")  # Adjusted padding
+        container_left = ttk.Frame(main_container, padding="5", style="MainFrame.TFrame") 
+        container_left.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")  
 
         # Configure `container_right` (right side) inside main_container
-        container_right = ttk.Frame(main_container, padding="5", style="MainFrame.TFrame")  # Reduced padding
-        container_right.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")  # Adjusted padding
+        container_right = ttk.Frame(main_container, padding="5", style="MainFrame.TFrame") 
+        container_right.grid(row=0, column=1, padx=10, pady=10, sticky="nsew") 
 
         main_container.grid_rowconfigure(0, weight=1)
         main_container.grid_columnconfigure(0, weight=1)
@@ -75,11 +74,11 @@ class UserInterface:
 
         # Set up title in the first row of `container_left`
         title_label = ttk.Label(container_left, text="Cache Memory Simulator", font=("Doto", 28, "bold"), foreground="white", background=self.background_main)
-        title_label.grid(row=0, column=0, columnspan=2, pady=(15, 20), sticky="ew")  # Reduced vertical padding
+        title_label.grid(row=0, column=0, columnspan=2, pady=(15, 20), sticky="ew") 
 
         # Create `background_container` with a colored background inside `container_left`
-        background_container = ttk.Frame(container_left, padding="5", style="ConfigFrame.TFrame")  # Reduced padding
-        background_container.grid(row=1, column=0, columnspan=2, pady=5, padx=5, sticky="ew")  # Reduced padding
+        background_container = ttk.Frame(container_left, padding="5", style="ConfigFrame.TFrame")  
+        background_container.grid(row=1, column=0, columnspan=2, pady=5, padx=5, sticky="ew")  
 
         # Set background color for the input container
         background_container.configure(style="InputFrame.TFrame")
@@ -89,7 +88,7 @@ class UserInterface:
 
         # Add "Cache Configuration" title above the fields
         cache_config_title = ttk.Label(background_container, text="Cache Configuration", font=(self.font_container, 20), foreground=self.font_color_1, background=self.background_container)
-        cache_config_title.grid(row=0, column=0, columnspan=2, pady=(0, 10), sticky="ew")  # Reduced vertical padding
+        cache_config_title.grid(row=0, column=0, columnspan=2, pady=(0, 10), sticky="ew")  
 
         # Create `configuration_container` for input fields within `background_container`
         self.configuration_container = ttk.Frame(background_container, padding="5", style="ConfigFrame.TFrame") 
@@ -144,7 +143,7 @@ class UserInterface:
 
         # Add buttons for the different cache algorithms in `container_right`
         algorithm_buttons_frame = ttk.Frame(container_right, padding="16", style="MainFrame.TFrame")
-        algorithm_buttons_frame.grid(row=0, column=0, pady=(8,10), sticky="n")  # Adjusted padding
+        algorithm_buttons_frame.grid(row=0, column=0, pady=(8,10), sticky="n")  
 
         # Create the buttons for cache algorithms
         direct_mapped_button = tk.Button(algorithm_buttons_frame, text="Direct-Mapped Cache", command=self.direct_mapped_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=30)
@@ -180,22 +179,20 @@ class UserInterface:
 #---------------------------------------------------------------------------------------------------------------------
 
     def direct_mapped_algorithm(self):
-        cache = Cache(self)
-        cache.direct_mapped()
-
+        self.cache = Direct_mapped_cache(self)
+        self.cache.direct_mapped()
         ttk.Label(self.configuration_container,text="Instruction:",font=(self.font_container, 14),foreground=self.font_color_1,background=self.background_container).grid(row=7, column=0, sticky=tk.W, pady=3)
         instruction_menu = ttk.OptionMenu( self.configuration_container,self.instuction,   "LOAD","LOAD", "STORE")
         instruction_menu.config(width=17) 
         instruction_menu.grid(row=7, column=1)  
         self.input.set("hex,hex") 
-
+        self.dir = 1
 
     def fully_associative_algorithm(self):
         messagebox.showinfo("Fully Associative Algorithm", "You have selected the Fully Associative Cache Algorithm.")
 
     def set_associative_algorithm(self):
         messagebox.showinfo("Set Associative Algorithm", "You have selected the Set Associative Cache Algorithm.")
-
 
     def display_results(self, results):
         result_text = "\n".join(f"{key}: {value}" for key, value in results.items())
@@ -224,6 +221,46 @@ class UserInterface:
                     else:
                         self.frame_labels[i].config(bg=self.color_pink, text=str(page))  # Cache miss
 
+    def input_split(self, input_sequence):
+        try:
+            return list(map(lambda x: int(x.strip()), input_sequence.split(',')))
+        except ValueError as e:
+            print(f"Error: Invalid input. Ensure all entries are integers. Details: {e}")
+            return []
+
+    def input_split(self, input_sequence):
+        try:
+            # Parse input as hexadecimal strings
+            return list(map(lambda x: x.strip(), input_sequence.split(',')))
+        except Exception as e:
+            print(f"Error: Invalid input. Ensure all entries are valid hexadecimal strings. Details: {e}")
+            return []
+        
+    def remove_first_value(self,input_str):
+        values = input_str.split(',')
+        values.pop(0)
+        return ','.join(values)
+
     def run_simulation(self):
-        simulation = Simulation(self)
-        simulation.run_simulation()
+        if self.dir == 0:
+            simulation = Simulation(self)
+            simulation.run_simulation()
+        elif self.dir == 1:
+            if self.instuction.get() == "LOAD":
+                input_sequence = self.input.get()  
+                if not input_sequence.strip():  
+                    print("Input is empty. Please enter valid data.")
+                    return
+                hex_values = self.input_split(input_sequence)
+                if hex_values:  
+                    try:
+                        first_value = int(hex_values[0], 16) 
+                        binary_value = bin(first_value)[2:]  
+                    except ValueError as e:
+                        print(f"Error converting hexadecimal to binary. Details: {e}")
+                else:
+                    print("No valid hexadecimal values to process.")
+                
+                self.cache.load_instruction(binary_value)
+                self.input.set(self.remove_first_value(input_sequence)) 
+                
