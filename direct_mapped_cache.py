@@ -14,6 +14,7 @@ class Direct_mapped_cache:
         self.main_contents = []
         self.main_canvas = None
         self.cache_title_label= "Cache Memory"
+        self.tio_label = "Instruction Breakdown"
         # Declare the variables for direct-mapped cache simulation
         self.num_blocks = 0
         self.block_offset_bits = 0
@@ -22,6 +23,7 @@ class Direct_mapped_cache:
         self.tag = '0'
         self.index = '0'
         self.offset = '0'
+        self.data_byte= ""
 
 #---------------------------------------------------------------------------------------------------------------------
     def direct_mapped(self):
@@ -43,14 +45,14 @@ class Direct_mapped_cache:
         print("------------------------------------")
         for widget in self.ui.output_container.winfo_children():
             widget.destroy()
-        title_label = tk.Label(
+        self.tio_label = tk.Label(
             self.ui.output_container,
             text="Instruction Breakdown",
             font=("Cascadia Code", 16, "bold"),
             bg=self.ui.background_container,
             fg=self.ui.font_color_1
         )
-        title_label.grid(row=0, column=0, columnspan=3, padx=5, pady=(10, 5), sticky="W")
+        self.tio_label.grid(row=0, column=0, columnspan=3, padx=5, pady=(10, 5), sticky="W")
 
         headers = ["Tag", "Index", "Offset"]
         for col, header in enumerate(headers):
@@ -85,13 +87,15 @@ class Direct_mapped_cache:
             self.create_cache_table()
 #---------------------------------------------------------------------------------------------------------------------
     def update_tio(self, binary_number):
+        binary_zero = bin(0)[2:].zfill(self.address_width)
         binary_number = binary_number.zfill(self.address_width)
         self.tag = binary_number[:self.tag_bits]
         self.index = binary_number[self.tag_bits:self.tag_bits + self.index_bits]
         self.offset = binary_number[self.tag_bits + self.index_bits:]
-        print(f"Tag: {self.tag}")
-        print(f"Index: {self.index}")
-        print(f"Offset: {self.offset}")
+        if binary_number != binary_zero :
+            print(f"Tag: {self.tag}")
+            print(f"Index: {self.index}")
+            print(f"Offset: {self.offset}")
         for widget in self.ui.output_container.winfo_children():
             if int(widget.grid_info()['row']) == 2:
                 widget.destroy()
@@ -469,12 +473,13 @@ class Direct_mapped_cache:
 #---------------------------------------------------------------------------------------------------------------------
     # Load = Read. Retrieves data from memory/cache.
         
-    def load_instruction(self, binary_number):
+    def load_instruction(self, binary_number,addr):
         print("Load :" + str(binary_number))
         self.update_tio(binary_number)
-        self.ui.window.after(2000, self.check_cache_hit_or_miss)
+        self.tio_label.config(text="Instruction Breakdown for "+str(addr), fg=self.ui.font_color_1)
+        self.ui.window.after(2000, self.check_cache_hit_or_miss_load)
 
-    def check_cache_hit_or_miss(self):
+    def check_cache_hit_or_miss_load(self):
         try:
             cache_index = int(self.index, 2)  # Convert the index to an integer
             offset_value = int(self.offset, 2)  # Convert the offset to an integer
@@ -505,14 +510,14 @@ class Direct_mapped_cache:
             else:
                 self.cache_title_label.config(text="Cache Miss", fg=self.ui.font_color_1)
                 self.color_cache_row(cache_index, self.ui.background_main, self.ui.font_color_1)
-                self.ui.window.after(2000, self.load_data_from_main_memory, cache_index)
+                self.ui.window.after(2000, self.load_data_from_main_memory, cache_index,0)
 
         except Exception as e:
-            print(f"Error in check_cache_hit_or_miss: {e}")
+            print(f"Error in check_cache_hit_or_miss_load: {e}")
             messagebox.showerror("Error", f"An error occurred: {e}")
 
-    def load_data_from_main_memory(self, cache_index):
-        
+    def load_data_from_main_memory(self, cache_index,instr):
+        self.cache_title_label.config(text="Cache Miss : Load data from main memory", fg=self.ui.font_color_1)
         memory_row_index = int(self.tag + self.index, 2)
         
         if memory_row_index >= len(self.main_contents):
@@ -552,8 +557,13 @@ class Direct_mapped_cache:
         data = str(self.cache_contents[cache_index][3 + offset_value])
              
         print(f"Loaded data from main memory block {memory_row_index} to cache index {cache_index}.")
-        self.ui.window.after(2000, self.color_block_miss,cache_index,memory_row_index,data)
-    
+        if instr == 0:
+            self.ui.window.after(4000, self.color_block_miss,cache_index,memory_row_index,data)
+        else:
+            self.cache_contents[cache_index][3 + offset_value] = self.data_byte
+            self.update_cache_table()
+            self.ui.window.after(4000, self.color_block_miss,cache_index,memory_row_index,self.data_byte)
+
     def color_block_miss(self,cache_index,memory_row_index,data):
         self.color_cache_block(cache_index,  self.ui.color_pink  ,self.ui.font_color_1 )
         self.cache_title_label.config(text="Data : "+data, fg=self.ui.font_color_1)
@@ -570,5 +580,56 @@ class Direct_mapped_cache:
         self.color_cache_row(cache_index,self.ui.font_color_1  ,self.ui.background_main  )
         self.color_main_memory_row(memory_row_index ,self.ui.font_color_1,self.ui.color_pink  )
         self.cache_title_label.config(text="Cache Memory ", fg=self.ui.font_color_1)
+        self.tio_label.config(text="Instruction Breakdown", fg=self.ui.font_color_1)
+        binary_zero = bin(0)[2:]
+        self.update_tio(binary_zero)
 #---------------------------------------------------------------------------------------------------------------------
     # Store = Write. Saves data to memory/cache.
+
+    def store_instruction(self, address_binary,data_byte,addr):
+        self.data_byte=data_byte
+        print("Store at address : " + str(address_binary) + "   data : " +self.data_byte)
+        self.update_tio(address_binary)
+        self.tio_label.config(text="Instruction Breakdown for "+str(addr), fg=self.ui.font_color_1)
+        self.ui.window.after(2000, self.check_cache_hit_or_miss_store)
+
+    def check_cache_hit_or_miss_store(self):
+        try:
+            cache_index = int(self.index, 2)  # Convert the index to an integer
+            offset_value = int(self.offset, 2)  # Convert the offset to an integer
+
+            # Validate cache index and offset
+            if cache_index >= len(self.cache_contents):
+                raise IndexError(f"Cache index {cache_index} is out of range for the cache size {len(self.cache_contents)}.")
+            if offset_value >= self.block_size:
+                raise ValueError(f"Offset value {offset_value} is out of range for the block size {self.block_size}.")
+            
+            # Validate cache row structure
+            cache_row = self.cache_contents[cache_index]
+            if len(cache_row) < 3 + self.block_size:
+                raise ValueError(f"Cache row {cache_index} does not have enough elements. Expected at least {3 + self.block_size}, found {len(cache_row)}.")
+
+            # Determine cache hit or miss
+            cache_valid = cache_row[1]  # Valid bit
+            cache_tag = cache_row[2]    # Tag
+            is_hit = cache_valid == "1" and self.tag == cache_tag
+            print("Cache hit" if is_hit else "Cache miss")
+
+            
+            data = str(cache_row[3 + offset_value])
+            if is_hit:
+                self.cache_title_label.config(text="Cache Hit", fg=self.ui.font_color_1)
+                self.cache_contents[cache_index][3 + offset_value] = self.data_byte
+                self.update_cache_table()
+                self.color_cache_row(cache_index, self.ui.color_pink, self.ui.font_color_1)
+                self.ui.window.after(2000, self.color_block_hit, cache_index, None, self.data_byte)
+            else:
+                self.cache_title_label.config(text="Cache Miss", fg=self.ui.font_color_1)
+                self.color_cache_row(cache_index, self.ui.background_main, self.ui.font_color_1)
+               
+                self.ui.window.after(2000, self.load_data_from_main_memory, cache_index,1)
+
+        except Exception as e:
+            print(f"Error in check_cache_hit_or_miss_load: {e}")
+            messagebox.showerror("Error", f"An error occurred: {e}")
+

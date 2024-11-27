@@ -47,7 +47,6 @@ class UserInterface:
 
         self.window.geometry(f'{window_width}x{window_height}+{position_right}+{position_top}')
 
-
     def setup_ui(self):
         # Create main_container for left and right division
         main_container = ttk.Frame(self.window, padding="5", style="MainFrame.TFrame")
@@ -178,14 +177,26 @@ class UserInterface:
 
 #---------------------------------------------------------------------------------------------------------------------
 
+
     def direct_mapped_algorithm(self):
         self.cache = Direct_mapped_cache(self)
         self.cache.direct_mapped()
-        ttk.Label(self.configuration_container,text="Instruction:",font=(self.font_container, 14),foreground=self.font_color_1,background=self.background_container).grid(row=7, column=0, sticky=tk.W, pady=3)
-        instruction_menu = ttk.OptionMenu( self.configuration_container,self.instuction,   "LOAD","LOAD", "STORE")
-        instruction_menu.config(width=17) 
-        instruction_menu.grid(row=7, column=1)  
+
+        ttk.Label(self.configuration_container, text="Instruction:", 
+                font=(self.font_container, 14), 
+                foreground=self.font_color_1, 
+                background=self.background_container).grid(row=7, column=0, sticky=tk.W, pady=3)
+
+        instruction_menu = ttk.OptionMenu(self.configuration_container, 
+                                        self.instuction, 
+                                        "LOAD",  # Default value
+                                        "LOAD", "STORE", 
+                                        command=self.on_instruction_change)
+        instruction_menu.config(width=17)
+        instruction_menu.grid(row=7, column=1)
+        ttk.Label(self.configuration_container, text="Input:(address)", font=(self.font_container, 11), foreground=self.font_color_1, background=self.background_container).grid(row=8, column=0, sticky=tk.W, pady=3)
         self.input.set("hex,hex") 
+        self.instuction.trace_add("write", self.on_instruction_change)
         self.dir = 1
 
     def fully_associative_algorithm(self):
@@ -193,6 +204,7 @@ class UserInterface:
 
     def set_associative_algorithm(self):
         messagebox.showinfo("Set Associative Algorithm", "You have selected the Set Associative Cache Algorithm.")
+#---------------------------------------------------------------------------------------------------------------------
 
     def display_results(self, results):
         result_text = "\n".join(f"{key}: {value}" for key, value in results.items())
@@ -220,6 +232,25 @@ class UserInterface:
                         self.frame_labels[i].config(bg=self.background_main, text=str(page))  # Cache hit 
                     else:
                         self.frame_labels[i].config(bg=self.color_pink, text=str(page))  # Cache miss
+   
+    def on_instruction_change(self, *args):
+        for widget in self.configuration_container.grid_slaves():
+            if int(widget.grid_info()["row"]) == 8:  
+                widget.destroy()
+        if self.instuction.get() == "LOAD":
+            ttk.Label(self.configuration_container, text="Input (address):", 
+                    font=(self.font_container, 11), 
+                    foreground=self.font_color_1, 
+                    background=self.background_container).grid(row=8, column=0, sticky=tk.W, pady=3)
+            tk.Entry(self.configuration_container, textvariable=self.input, width=22).grid(row=8, column=1)
+            self.input.set("hex,hex")  # Set default value for LOAD
+        elif self.instuction.get() == "STORE":
+            ttk.Label(self.configuration_container, text="Input (address-data):", 
+                    font=(self.font_container, 11), 
+                    foreground=self.font_color_1, 
+                    background=self.background_container).grid(row=8, column=0, sticky=tk.W, pady=3)
+            tk.Entry(self.configuration_container, textvariable=self.input, width=22).grid(row=8, column=1)
+            self.input.set("hex-hex,hex-hex,")  # Set default value for STORE
 
     def input_split(self, input_sequence):
         try:
@@ -230,7 +261,6 @@ class UserInterface:
 
     def input_split(self, input_sequence):
         try:
-            # Parse input as hexadecimal strings
             return list(map(lambda x: x.strip(), input_sequence.split(',')))
         except Exception as e:
             print(f"Error: Invalid input. Ensure all entries are valid hexadecimal strings. Details: {e}")
@@ -241,11 +271,15 @@ class UserInterface:
         values.pop(0)
         return ','.join(values)
 
+
+ #---------------------------------------------------------------------------------------------------------------------
+
     def run_simulation(self):
         if self.dir == 0:
             simulation = Simulation(self)
             simulation.run_simulation()
         elif self.dir == 1:
+            #-------------------------------------------------------------------------------LOAD/READ
             if self.instuction.get() == "LOAD":
                 input_sequence = self.input.get()  
                 if not input_sequence.strip():  
@@ -260,7 +294,32 @@ class UserInterface:
                         print(f"Error converting hexadecimal to binary. Details: {e}")
                 else:
                     print("No valid hexadecimal values to process.")
-                
-                self.cache.load_instruction(binary_value)
+                self.cache.load_instruction(binary_value,hex_values[0])
                 self.input.set(self.remove_first_value(input_sequence)) 
-                
+            #-------------------------------------------------------------------------------STORE/WRITE
+            elif self.instuction.get() == "STORE":
+                input_sequence = self.input.get()  
+                if not input_sequence.strip():  
+                    print("Input is empty. Please enter valid data.")
+                    return
+                hex_values = self.input_split(input_sequence)
+                if hex_values:
+                    first_pair = hex_values[0]
+                    try:
+                        address, data_byte = map(str.strip, first_pair.split('-'))
+                        address_int = int(address, 16)
+                        address_binary= bin(address_int)[2:]  
+                        byte_int = int(data_byte, 16)
+                        byte_binary= bin(byte_int)[2:]  
+                            # print(f"Address (binary): {address_binary}")
+                            # print(f"Byte (binary): {byte_binary}")
+                            # print(data_byte)
+                        
+                    except ValueError as e:
+                        print(f"Error processing address-byte pair '{pair}'. Ensure they are valid hexadecimal values. Details: {e}")
+                            
+                else:
+                    print("No valid address-byte pairs to process.")
+                self.cache.store_instruction(address_binary,data_byte,address)    
+                self.input.set(self.remove_first_value(input_sequence)) 
+                    
