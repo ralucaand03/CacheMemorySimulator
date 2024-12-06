@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-class Direct_mapped_cache:
+class Fully_associative_cache:
     def __init__(self, ui):
         self.ui = ui
         self.cache_size = ui.cache_size.get()
@@ -26,21 +26,20 @@ class Direct_mapped_cache:
         self.data_byte= ""
 
 #---------------------------------------------------------------------------------------------------------------------
-    def direct_mapped(self):
+#---------------------------------------------------------------------------------------------------------------------
+    def fully_associative(self):
         if not self.validate():
             return 
         self.num_blocks = self.cache_size // self.block_size
         self.block_offset_bits = (self.block_size - 1).bit_length()  # log2(block_size)
-        self.index_bits = (self.num_blocks - 1).bit_length()  # log2(number of blocks)
-        self.tag_bits = self.address_width - (self.index_bits + self.block_offset_bits)
+        self.tag_bits = self.address_width -  self.block_offset_bits
         
-        print(f"Direct-Mapped Cache Simulation:")
+        print(f"Fully-Associative Cache Simulation:")
         print(f"Cache size: {self.cache_size}")
         print(f"Address width: {self.address_width}")
         print(f"Block size: {self.block_size}")
         print(f"Number of blocks: {self.num_blocks}")
         print(f"Tag bits: {self.tag_bits}")
-        print(f"Index bits: {self.index_bits}")
         print(f"Block offset bits: {self.block_offset_bits}")
         print("------------------------------------")
         for widget in self.ui.output_container.winfo_children():
@@ -54,12 +53,12 @@ class Direct_mapped_cache:
         )
         self.tio_label.grid(row=0, column=0, columnspan=3, padx=5, pady=(10, 5), sticky="W")
 
-        headers = ["Tag", "Index", "Offset"]
+        headers = ["Tag", "Offset"]
         for col, header in enumerate(headers):
             header_label = tk.Label(
                 self.ui.output_container,
                 text=header,
-                width=12,
+                width=19,
                 height=2,
                 font=("Cascadia Code", 14, "bold"),
                 bg=self.ui.background_main,
@@ -69,12 +68,12 @@ class Direct_mapped_cache:
             )
             header_label.grid(row=1, column=col, padx=5, pady=7, sticky="nsew")
 
-        zeros = ['0' * self.tag_bits, '0' * self.index_bits, '0' * self.block_offset_bits]
+        zeros = ['0' * self.tag_bits, '0' * self.block_offset_bits]
         for col, value in enumerate(zeros):
             row_label = tk.Label(
                 self.ui.output_container,
                 text=value,
-                width=12,
+                width=19,
                 height=2,
                 font=("Cascadia Code", 14),
                 bg=self.ui.font_color_1,
@@ -94,18 +93,17 @@ class Direct_mapped_cache:
         self.offset = binary_number[self.tag_bits + self.index_bits:]
         if binary_number != binary_zero :
             print(f"Tag: {self.tag}")
-            print(f"Index: {self.index}")
             print(f"Offset: {self.offset}")
         for widget in self.ui.output_container.winfo_children():
             if int(widget.grid_info()['row']) == 2:
                 widget.destroy()
 
-        values = [self.tag, self.index, self.offset]
+        values = [self.tag, self.offset]
         for col, value in enumerate(values):
             row_label = tk.Label(
                 self.ui.output_container,
                 text=value,
-                width=12,
+                width=19,
                 height=2,
                 font=("Cascadia Code", 14),
                 bg=self.ui.font_color_1,
@@ -200,50 +198,36 @@ class Direct_mapped_cache:
 
     def update_main_memory_table(self, search_index=None):
         try:
-            # Ensure main_contents and main_scrollable_frame exist
-            if not hasattr(self, "main_contents") or not self.main_contents:
+            # Ensure the table exists
+            if not hasattr(self, "main_contents"):
                 raise AttributeError("Main memory contents not initialized. Please create the main memory table first.")
-            if not hasattr(self, "main_scrollable_frame") or self.main_scrollable_frame is None:
-                raise AttributeError("Main memory scrollable frame not initialized.")
 
             # Clear existing widgets in the scrollable frame
             for widget in self.main_scrollable_frame.winfo_children():
                 widget.destroy()
 
-            # Create or configure styles for highlighting and default labels
-            style = ttk.Style()
-            style.configure("DefaultLabel.TLabel", 
-                            foreground=self.ui.color_pink,  # Set the foreground color
-                            background=self.ui.font_color_1,  # Set the background color
-                            font=("Cascadia Code", 10))
-            style.configure("HighlightLabel.TLabel", 
-                            background="yellow", 
-                            foreground="black")
-
             # Recreate the table using updated contents
             for block_index, block_data in enumerate(self.main_contents):
-                # Validate block data length
-                if len(block_data) != self.block_size:
-                    raise ValueError(f"Block {block_index} has an incorrect number of elements. Expected {self.block_size}, found {len(block_data)}.")
                 for word_index, word_data in enumerate(block_data):
-                    # Choose style based on search_index
-                    style_to_use = "HighlightLabel.TLabel" if search_index == block_index else "DefaultLabel.TLabel"
-
                     word_label = ttk.Label(
                         self.main_scrollable_frame,
                         text=str(word_data),  # Convert to string for display
                         width=10,
-                        anchor="center",
-                        style=style_to_use
+                        anchor="center"
                     )
                     word_label.grid(
                         row=(block_index * 2) + 1, column=word_index, padx=5, pady=2, sticky="nsew"
                     )
+                    
+                    # If a search index is provided and matches the current block, color the row
+                    if search_index is not None and block_index == search_index:
+                        word_label.config(bg="yellow", fg="black")  # Change the background and text color for the searched row
+                    else:
+                        word_label.config(bg=self.ui.background_main, fg=self.ui.font_color_1)  # Reset to default colors
 
         except Exception as e:
-            print(f"Error in update_main_memory_table: {e}")
             messagebox.showerror("Error", f"An error occurred: {e}")
- 
+    
     def color_main_memory_row(self, row, bg_color, fg_color):
         try:
             # Reset all rows to their default color
@@ -458,244 +442,22 @@ class Direct_mapped_cache:
                     widget.config(bg=bg_color, fg=fg_color)  # Apply the colors
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred while coloring the cache block: {e}")
+
 #---------------------------------------------------------------------------------------------------------------------
-    def input_split(self, input_sequence):
-        try:
-            hex_values = list(map(lambda x: hex(int(x.strip())), input_sequence.split(',')))
-            return hex_values
-        except ValueError as e:
-            print(f"Error: Invalid input. Ensure all entries are integers. Details: {e}")
-            return []
-    
     def validate(self):
-        if self.cache_size <= 0 or self.block_size <= 0 or self.address_width <= 0:
-            messagebox.showerror("Input Error", "Cache size, block size, and address width must be positive integers.")
-            return False
-        if self.block_size & (self.block_size - 1) != 0:
-            messagebox.showerror("Input Error", "Block size must be a power of 2.")
-            return False
-        if self.cache_size % self.block_size != 0:
-            messagebox.showerror("Input Error", "Cache size must be a multiple of block size.")
-            return False
-        if self.address_width < self.cache_size.bit_length():
-            messagebox.showerror("Input Error", "Address width must be large enough to address the entire cache size.")
-            return False
-        if self.address_width > 10 :
-            messagebox.showerror("Input Error", "Address width must be max 10")
-            return False
-        return True
-#---------------------------------------------------------------------------------------------------------------------
-    # Load = Read. Retrieves data from memory/cache.
-        
-    def load_instruction(self, binary_number,addr):
-        print("Load :" + str(binary_number))
-        self.update_tio(binary_number)
-        self.tio_label.config(text="Instruction Breakdown for "+str(addr), fg=self.ui.font_color_1)
-        self.ui.window.after(2000, self.check_cache_hit_or_miss_load)
-
-    def check_cache_hit_or_miss_load(self):
-        try:
-            cache_index = int(self.index, 2)  # Convert the index to an integer
-            offset_value = int(self.offset, 2)  # Convert the offset to an integer
-
-            # Validate cache index and offset
-            if cache_index >= len(self.cache_contents):
-                raise IndexError(f"Cache index {cache_index} is out of range for the cache size {len(self.cache_contents)}.")
-            if offset_value >= self.block_size:
-                raise ValueError(f"Offset value {offset_value} is out of range for the block size {self.block_size}.")
-            
-            # Validate cache row structure
-            cache_row = self.cache_contents[cache_index]
-            if len(cache_row) < 3 + self.block_size:
-                raise ValueError(f"Cache row {cache_index} does not have enough elements. Expected at least {3 + self.block_size}, found {len(cache_row)}.")
-
-            # Determine cache hit or miss
-            cache_valid = cache_row[1]  # Valid bit
-            cache_tag = cache_row[2]    # Tag
-            is_hit = cache_valid == "1" and self.tag == cache_tag
-            print("Cache hit" if is_hit else "Cache miss")
-
-            # Retrieve data from cache
-            data = str(cache_row[3 + offset_value])
-            if is_hit:
-                self.cache_title_label.config(text="Cache Hit", fg=self.ui.font_color_1)
-                self.color_cache_row(cache_index, self.ui.color_pink, self.ui.font_color_1)
-                self.ui.window.after(2000, self.color_block_hit, cache_index, None, data)
-            else:
-                self.cache_title_label.config(text="Cache Miss", fg=self.ui.font_color_1)
-                self.color_cache_row(cache_index, self.ui.background_main, self.ui.font_color_1)
-                self.ui.window.after(2000, self.load_data_from_main_memory, cache_index,0)
-
-        except Exception as e:
-            print(f"Error in check_cache_hit_or_miss_load: {e}")
-            messagebox.showerror("Error", f"An error occurred: {e}")
-
-    def load_data_from_main_memory(self, cache_index,instr):
-        self.cache_title_label.config(text="Cache Miss : Load data from main memory", fg=self.ui.font_color_1)
-        memory_row_index = int(self.tag + self.index, 2)
-        
-        if memory_row_index >= len(self.main_contents):
-            print(f"Error: Memory row index {memory_row_index} exceeds main memory size.")
-            return
-
-        memory_row = self.main_contents[memory_row_index]
-        if len(memory_row) <= int(self.offset, 2):
-            print(f"Error: Memory row {memory_row_index} does not contain enough data.")
-            return
-        if len(self.cache_contents[cache_index]) < 2 + self.block_size + 1:
-            print(f"Error: Cache row {cache_index} does not have enough space to store data.")
-            return
-
-        self.cache_contents[cache_index][1] = "1"  # Set valid bit
-        self.cache_contents[cache_index][2] = self.tag  # Set tag
-        self.cache_contents[cache_index][-1] = "0"  # Set dirty bit to '0'
-
-        for block in range(self.block_size):
-            if block < len(memory_row): 
-                self.cache_contents[cache_index][3 + block] = memory_row[block] 
-            else:
-                print(f"Error: Block {block} is out of range for memory row {memory_row_index}")
-
-        self.update_cache_table()
-        self.color_cache_row(cache_index,self.ui.background_main  ,self.ui.font_color_1 )
-        # Highlight the row and scroll to it
-        self.color_main_memory_row(memory_row_index,self.ui.color_pink  ,self.ui.font_color_1 )
-        for widget in self.main_scrollable_frame.winfo_children():
-            grid_info = widget.grid_info()
-            row = int(grid_info['row'])  
-            if row == memory_row_index + 1: 
-                row_height = widget.winfo_height() 
-                row_y_position = row * row_height  
-                self.main_canvas.yview_moveto(row_y_position / self.main_canvas.bbox("all")[3]) 
-        offset_value = int(self.offset)  
-        data = str(self.cache_contents[cache_index][3 + offset_value])
-             
-        print(f"Loaded data from main memory block {memory_row_index} to cache index {cache_index}.")
-        if instr == 0:
-            self.ui.window.after(4000, self.color_block_miss,cache_index,memory_row_index,data)
-        else:
-            self.cache_contents[cache_index][3 + offset_value] = self.data_byte
-            self.update_cache_table()
-            self.ui.window.after(4000, self.color_block_miss,cache_index,memory_row_index,self.data_byte)
-
-    def color_block_miss(self,cache_index,memory_row_index,data):
-        self.color_cache_block(cache_index,  self.ui.color_pink  ,self.ui.font_color_1 )
-        self.cache_title_label.config(text="Data : "+data, fg=self.ui.font_color_1)
-        print("Data : "+data)
-        self.ui.window.after(4000, self.reset_colors,cache_index,memory_row_index)
-
-    def color_block_hit(self,cache_index,memory_row_index,data):
-        self.color_cache_block(cache_index,  self.ui.background_main  ,self.ui.font_color_1 )
-        self.cache_title_label.config(text="Data : "+data, fg=self.ui.font_color_1)
-        print("Data : "+data)
-        self.ui.window.after(4000, self.reset_colors,cache_index,memory_row_index)
-
-    def reset_colors(self,cache_index,memory_row_index):
-        if(cache_index!=None):
-            self.color_cache_row(cache_index,self.ui.font_color_1  ,self.ui.background_main  )
-        self.color_main_memory_row(memory_row_index ,self.ui.font_color_1,self.ui.color_pink  )
-        self.cache_title_label.config(text="Cache Memory ", fg=self.ui.font_color_1)
-        self.tio_label.config(text="Instruction Breakdown", fg=self.ui.font_color_1)
-        binary_zero = bin(0)[2:]
-        self.update_tio(binary_zero)
-#---------------------------------------------------------------------------------------------------------------------
-    # Store = Write. Saves data to memory/cache.
-
-    def store_instruction(self, address_binary,data_byte,addr):
-        self.data_byte=data_byte
-        print("Store at address : " + str(address_binary) + "   data : " +self.data_byte)
-        self.update_tio(address_binary)
-        self.tio_label.config(text="Instruction Breakdown for "+str(addr), fg=self.ui.font_color_1)
-        self.ui.window.after(2000, self.check_cache_hit_or_miss_store)
-
-    def check_cache_hit_or_miss_store(self):
-        try:
-            cache_index = int(self.index, 2)  # Convert the index to an integer
-            offset_value = int(self.offset, 2)  # Convert the offset to an integer
-
-            if cache_index >= len(self.cache_contents):
-                raise IndexError(f"Cache index {cache_index} is out of range for the cache size {len(self.cache_contents)}.")
-            if offset_value >= self.block_size:
-                raise ValueError(f"Offset value {offset_value} is out of range for the block size {self.block_size}.")
-            
-            cache_row = self.cache_contents[cache_index]
-            if len(cache_row) < 3 + self.block_size:
-                raise ValueError(f"Cache row {cache_index} does not have enough elements. Expected at least {3 + self.block_size}, found {len(cache_row)}.")
-
-            # Determine cache hit or miss
-            cache_valid = cache_row[1]  # Valid bit
-            cache_tag = cache_row[2]    # Tag
-            is_hit = cache_valid == "1" and self.tag == cache_tag
-            print("Cache hit" if is_hit else "Cache miss")
-
-            
-            data = str(cache_row[3 + offset_value])
-            if is_hit:
-                #HIT
-                self.cache_title_label.config(text="Cache Hit", fg=self.ui.font_color_1)
-                self.cache_contents[cache_index][3 + offset_value] = self.data_byte
-                
-                if(self.write_hit_policy=="write-back"):
-                    # Write-back: Update cache only, set dirty bit
-                    print("Write-back: Writing data to cache marking block dirty.")
-                    self.cache_contents[cache_index][3 + self.block_size] = "1"
-                    self.update_cache_table()
-                    self.color_cache_row(cache_index, self.ui.color_pink, self.ui.font_color_1)
-                    self.ui.window.after(2000, self.color_block_hit, cache_index, None, self.data_byte)
-                else:
-                    # Write-through: Update cache and main memory
-                    print("Write-through: Writing data to cache and main memory.")
-                    self.update_main_memory( offset_value, self.data_byte)
-                    self.update_cache_table()
-                    self.color_cache_row(cache_index, self.ui.color_pink, self.ui.font_color_1)
-                    self.ui.window.after(2000, self.color_block_hit, cache_index, None, self.data_byte)
-            
-
-            else:
-                #MISS
-                self.cache_title_label.config(text="Cache Miss", fg=self.ui.font_color_1)
-                if(self.write_miss_policy=="write-allocate"):
-                    #Write-Allocate: Load the block into the cache and write the data to the cache:
-                    print("Write-Allocate: Load the block into the cache and write the data to cache memory.")
-                    self.color_cache_row(cache_index, self.ui.background_main, self.ui.font_color_1)
-                    self.ui.window.after(2000, self.load_data_from_main_memory, cache_index,1)
-                else:
-                    #No-Write-Allocate: Write directly to memory
-                    print("No-Write-Allocate: The block that is being written is not loaded into the cache and the data is written directly to main memory")
-                    self.ui.window.after(2000, self.no_write_allocate,offset_value, self.data_byte )
-        except Exception as e:
-            print(f"Error in check_cache_hit_or_miss_load: {e}")
-            messagebox.showerror("Error", f"An error occurred: {e}")
-
-    def update_main_memory(self ,offset_value, data_byte):
-        try:
-            # Update the main memory contents
-            memory_row_index = int(self.tag + self.index, 2)
-            self.main_contents[memory_row_index][offset_value] = data_byte
-
-            print(f"Main memory updated at block {memory_row_index}, word {offset_value} with data: {data_byte} .")
-            self.update_main_memory_table()
-            self.color_main_memory_row(memory_row_index, self.ui.color_pink, self.ui.font_color_1)
-
-            # Scroll to the updated block
-            for widget in self.main_scrollable_frame.winfo_children():
-                grid_info = widget.grid_info()
-                row = int(grid_info['row'])
-
-                if row == memory_row_index + 1: 
-                    row_height = widget.winfo_height()  
-                    total_canvas_height = self.main_canvas.bbox("all")[3]  
-                    row_y_position = row * row_height
-
-                    scroll_position = row_y_position / total_canvas_height
-                    self.main_canvas.yview_moveto(scroll_position)  
-
-        except Exception as e:
-            print(f"Error in update_main_memory: {e}")
-            messagebox.showerror("Error", f"An error occurred while updating main memory: {e}")
-
-    def no_write_allocate(self ,offset_value, data_byte):
-        memory_row_index = int(self.tag + self.index, 2)
-        self.cache_title_label.config(text="Cache Hit: Data written directly to main memory", fg=self.ui.font_color_1)
-        self.update_main_memory( offset_value, data_byte)
-        self.ui.window.after(4000, self.reset_colors,None,memory_row_index)
+            if self.cache_size <= 0 or self.block_size <= 0 or self.address_width <= 0:
+                messagebox.showerror("Input Error", "Cache size, block size, and address width must be positive integers.")
+                return False
+            if self.block_size & (self.block_size - 1) != 0:
+                messagebox.showerror("Input Error", "Block size must be a power of 2.")
+                return False
+            if self.cache_size % self.block_size != 0:
+                messagebox.showerror("Input Error", "Cache size must be a multiple of block size.")
+                return False
+            if self.address_width < self.cache_size.bit_length():
+                messagebox.showerror("Input Error", "Address width must be large enough to address the entire cache size.")
+                return False
+            if self.address_width > 10 :
+                messagebox.showerror("Input Error", "Address width must be max 10")
+                return False
+            return True

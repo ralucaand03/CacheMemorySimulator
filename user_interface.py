@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from simulation import Simulation
 from direct_mapped_cache import Direct_mapped_cache
+from fully_associative_cache import Fully_associative_cache
 class UserInterface:
     def __init__(self):
         self.window = tk.Tk()
@@ -181,7 +182,17 @@ class UserInterface:
     def direct_mapped_algorithm(self):
         self.cache = Direct_mapped_cache(self)
         self.cache.direct_mapped()
+        self.mapping()
 
+    def fully_associative_algorithm(self):
+        self.cache = Fully_associative_cache(self)
+        self.cache.fully_associative()
+        self.mapping()
+        
+    def set_associative_algorithm(self):
+        messagebox.showinfo("Set Associative Algorithm", "You have selected the Set Associative Cache Algorithm.")
+#---------------------------------------------------------------------------------------------------------------------
+    def mapping(self):
         ttk.Label(self.configuration_container, text="Instruction:", 
                 font=(self.font_container, 14), 
                 foreground=self.font_color_1, 
@@ -198,13 +209,6 @@ class UserInterface:
         self.input.set("hex,hex") 
         self.instuction.trace_add("write", self.on_instruction_change)
         self.dir = 1
-
-    def fully_associative_algorithm(self):
-        messagebox.showinfo("Fully Associative Algorithm", "You have selected the Fully Associative Cache Algorithm.")
-
-    def set_associative_algorithm(self):
-        messagebox.showinfo("Set Associative Algorithm", "You have selected the Set Associative Cache Algorithm.")
-#---------------------------------------------------------------------------------------------------------------------
 
     def display_results(self, results):
         result_text = "\n".join(f"{key}: {value}" for key, value in results.items())
