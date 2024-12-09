@@ -11,6 +11,7 @@ class LRUalghorithm:
         if item in self.cache:
             self.cache.move_to_end(item)
             print(f"Cache hit: {item}")
+            box_number = len(self.cache) - 1
         else:
             if len(self.cache) >= self.capacity:
                 evicted = self.cache.popitem(last=False)

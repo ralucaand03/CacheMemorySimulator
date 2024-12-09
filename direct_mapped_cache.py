@@ -33,7 +33,7 @@ class Direct_mapped_cache:
         self.block_offset_bits = (self.block_size - 1).bit_length()  # log2(block_size)
         self.index_bits = (self.num_blocks - 1).bit_length()  # log2(number of blocks)
         self.tag_bits = self.address_width - (self.index_bits + self.block_offset_bits)
-        
+        print(f":::::::::::::::::::::::::::::::::::")
         print(f"Direct-Mapped Cache Simulation:")
         print(f"Cache size: {self.cache_size}")
         print(f"Address width: {self.address_width}")
@@ -576,6 +576,8 @@ class Direct_mapped_cache:
         else:
             self.cache_contents[cache_index][3 + offset_value] = self.data_byte
             self.update_cache_table()
+            self.color_cache_row(cache_index,self.ui.background_main  ,self.ui.font_color_1 )
+        
             self.ui.window.after(4000, self.color_block_miss,cache_index,memory_row_index,self.data_byte)
 
     def color_block_miss(self,cache_index,memory_row_index,data):
@@ -656,6 +658,7 @@ class Direct_mapped_cache:
                 self.cache_title_label.config(text="Cache Miss", fg=self.ui.font_color_1)
                 if(self.write_miss_policy=="write-allocate"):
                     #Write-Allocate: Load the block into the cache and write the data to the cache:
+                    self.cache_contents[cache_index][3 + self.block_size] = "1"
                     print("Write-Allocate: Load the block into the cache and write the data to cache memory.")
                     self.color_cache_row(cache_index, self.ui.background_main, self.ui.font_color_1)
                     self.ui.window.after(2000, self.load_data_from_main_memory, cache_index,1)
