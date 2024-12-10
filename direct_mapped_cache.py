@@ -459,14 +459,7 @@ class Direct_mapped_cache:
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred while coloring the cache block: {e}")
 #---------------------------------------------------------------------------------------------------------------------
-    def input_split(self, input_sequence):
-        try:
-            hex_values = list(map(lambda x: hex(int(x.strip())), input_sequence.split(',')))
-            return hex_values
-        except ValueError as e:
-            print(f"Error: Invalid input. Ensure all entries are integers. Details: {e}")
-            return []
-    
+
     def validate(self):
         if self.cache_size <= 0 or self.block_size <= 0 or self.address_width <= 0:
             messagebox.showerror("Input Error", "Cache size, block size, and address width must be positive integers.")

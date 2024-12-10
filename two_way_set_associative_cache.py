@@ -68,7 +68,7 @@ class Two_way_set_associative_cache:
         )
         self.tio_label.grid(row=0, column=0, columnspan=3, padx=5, pady=(10, 5), sticky="W")
         
-        headers = ["Tag", "Index", "Offset"]
+        headers = ["Tag", "Set Index", "Offset"]
         for col, header in enumerate(headers):
             header_label = tk.Label(
                 self.ui.output_container,
@@ -100,7 +100,7 @@ class Two_way_set_associative_cache:
         
         self.create_main_memory_table()
         self.create_cache_table()
-    #---------------------------------------------------------------------------------------------------------------------
+#---------------------------------------------------------------------------------------------------------------------
     def update_tio(self, binary_number):
         binary_zero = bin(0)[2:].zfill(self.address_width)
         binary_number = binary_number.zfill(self.address_width)
@@ -109,7 +109,7 @@ class Two_way_set_associative_cache:
         self.offset = binary_number[self.tag_bits + self.index_bits:]
         if binary_number != binary_zero:
             print(f"Tag: {self.tag}")
-            print(f"Index: {self.index}")
+            print(f"Set Index: {self.index}")
             print(f"Offset: {self.offset}")
         
         for widget in self.ui.output_container.winfo_children():
@@ -317,8 +317,8 @@ class Two_way_set_associative_cache:
             canvas.pack(side="left", fill="both", expand=True)
             vertical_scrollbar.pack(side="right", fill="y")
 
-            # Create the table headers (move "Index" to the first position)
-            headers = ["Index", "Set", "Valid", "Tag"] + [f"Byte{i}" for i in range(self.block_size)] + ["Dirty"]
+            # Create the table headers (without "Index")
+            headers = ["Set", "Valid", "Tag"] + [f"Byte{i}" for i in range(self.block_size)] + ["Dirty"]
             for col, header in enumerate(headers):
                 header_label = tk.Label(self.cache_scrollable_frame, text=header, width=6, height=1, font=("Cascadia Code", 10, "bold"),
                                         bg=self.ui.background_main, fg=self.ui.font_color_1, relief="solid", borderwidth=1)
@@ -340,21 +340,6 @@ class Two_way_set_associative_cache:
                     if set_idx % 2 == 0:
                         self.color_cache_row(row, bg_color, fg_color)
 
-                    # Index column: Show the index value for the set
-                    index_value = f"{row}"  # Index within the set (e.g., 0 or 1 for 2-way cache)
-                    tk.Label(
-                        self.cache_scrollable_frame,
-                        text=index_value,
-                        width=8,
-                        height=1,
-                        font=("Cascadia Code", 10),
-                        bg=bg_color,
-                        fg=fg_color,
-                        relief="solid",
-                        borderwidth=0.5
-                    ).grid(row=row + 1, column=0, padx=2, pady=1, sticky="nsew")
-                    row_data.append(index_value)
-
                     # Set column: Show which set this cache line belongs to
                     set_value = f"{set_idx}"
                     tk.Label(
@@ -367,7 +352,7 @@ class Two_way_set_associative_cache:
                         fg=fg_color,
                         relief="solid",
                         borderwidth=0.5
-                    ).grid(row=row + 1, column=1, padx=2, pady=1, sticky="nsew")
+                    ).grid(row=row + 1, column=0, padx=2, pady=1, sticky="nsew")
                     row_data.append(set_value)
 
                     # Valid column
@@ -382,7 +367,7 @@ class Two_way_set_associative_cache:
                         fg=fg_color,
                         relief="solid",
                         borderwidth=0.5
-                    ).grid(row=row + 1, column=2, padx=2, pady=1, sticky="nsew")
+                    ).grid(row=row + 1, column=1, padx=2, pady=1, sticky="nsew")
                     row_data.append(valid_value)
 
                     # Tag column
@@ -397,7 +382,7 @@ class Two_way_set_associative_cache:
                         fg=fg_color,
                         relief="solid",
                         borderwidth=0.5
-                    ).grid(row=row + 1, column=3, padx=2, pady=1, sticky="nsew")
+                    ).grid(row=row + 1, column=2, padx=2, pady=1, sticky="nsew")
                     row_data.append(tag_value)
 
                     # Block data columns
@@ -413,7 +398,7 @@ class Two_way_set_associative_cache:
                             fg=fg_color,
                             relief="solid",
                             borderwidth=0.5
-                        ).grid(row=row + 1, column=4 + col, padx=2, pady=1, sticky="nsew")
+                        ).grid(row=row + 1, column=3 + col, padx=2, pady=1, sticky="nsew")
                         row_data.append(block_value)
 
                     # Dirty column
@@ -428,7 +413,7 @@ class Two_way_set_associative_cache:
                         fg=fg_color,
                         relief="solid",
                         borderwidth=0.5
-                    ).grid(row=row + 1, column=4 + self.block_size, padx=2, pady=1, sticky="nsew")
+                    ).grid(row=row + 1, column=3 + self.block_size, padx=2, pady=1, sticky="nsew")
                     row_data.append(dirty_value)
 
                     # Append the row to cache_contents
@@ -436,23 +421,21 @@ class Two_way_set_associative_cache:
 
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred: {e}")
-
+            
     def update_cache_table(self):
         try:
             if not hasattr(self, "cache_contents"):
                 raise AttributeError("Cache contents not initialized. Please create the cache table first.")
 
-            # Clear previous widgets
             for widget in self.cache_scrollable_frame.winfo_children():
                 widget.destroy()
 
-            # Create table headers
-            headers = ["Index", "Valid", "Tag"] + [f"Byte{i}" for i in range(self.block_size)] + ["Dirty"]
+            headers = ["Set", "Valid", "Tag"] + [f"Byte{i}" for i in range(self.block_size)] + ["Dirty"]
             for col, header in enumerate(headers):
                 header_label = tk.Label(
                     self.cache_scrollable_frame,
                     text=header,
-                    width=6,
+                    width=7 if col >= 3 and col < len(headers) - 1 else 6,
                     height=1,
                     font=("Cascadia Code", 10, "bold"),
                     bg=self.ui.background_main,
@@ -462,22 +445,16 @@ class Two_way_set_associative_cache:
                 )
                 header_label.grid(row=0, column=col, padx=2, pady=2, sticky="nsew")
 
-            # Iterate over the rows in cache_contents
             for row_index, row_data in enumerate(self.cache_contents):
-                set_idx = row_index // 2  # Calculate the set index
-                bg_color = self.ui.row_color if set_idx % 2 == 1 else self.ui.font_color_1  # Conditional background color
-                fg_color = self.ui.background_main  # Foreground color
+                set_idx = row_index // 2
+                bg_color = self.ui.row_color if set_idx % 2 == 1 else self.ui.font_color_1
+                fg_color = self.ui.background_main
 
-                # Iterate over the columns in the row
                 for col_index, cell_data in enumerate(row_data):
-                    # Calculate the cell width based on column index (data columns should be wider)
-                    cell_width = 7 if col_index >= 3 and col_index < len(row_data) - 1 else 6
-
-                    # Create the cell label with the appropriate background and foreground colors
                     cell_label = tk.Label(
                         self.cache_scrollable_frame,
-                        text=str(cell_data),  
-                        width=cell_width,
+                        text=str(cell_data),
+                        width=7 if col_index >= 3 and col_index < len(row_data) - 1 else 6,
                         height=1,
                         font=("Cascadia Code", 10),
                         bg=bg_color,
@@ -532,4 +509,132 @@ class Two_way_set_associative_cache:
             messagebox.showerror("Input Error", "Address width must be max 10")
             return False
         return True
+#---------------------------------------------------------------------------------------------------------------------
+   # Load = Read. Retrieves data from memory/cache.
+        
+    def load_instruction(self, binary_number,addr):
+        print("Load :" + str(binary_number))
+        self.update_tio(binary_number)
+        self.tio_label.config(text="Instruction Breakdown for "+str(addr), fg=self.ui.font_color_1)
+        self.ui.window.after(2000, self.check_cache_hit_or_miss_load)
+
+    def check_cache_hit_or_miss_load(self):
+        try:
+            # Calculate set index and offset
+            cache_set_index = int(self.index, 2)  # Convert index binary to integer
+            offset_value = int(self.offset, 2)   # Convert offset binary to integer
+
+            # Validate set index and offset
+            if cache_set_index >= self.num_sets:
+                raise IndexError(f"Cache set index {cache_set_index} is out of range for {self.num_sets} sets.")
+            if offset_value >= self.block_size:
+                raise ValueError(f"Offset value {offset_value} is out of range for block size {self.block_size}.")
+
+            # Access the two cache lines for the set
+            set_start_index = cache_set_index * 2  # First line in the set
+            set_lines = [self.cache_contents[set_start_index], self.cache_contents[set_start_index + 1]]
+
+            # Check both lines for a cache hit
+            is_hit = False
+            for line_index, line in enumerate(set_lines):
+                valid_bit = line[1]  # Valid bit
+                tag = line[2]       # Tag
+
+                if valid_bit == "1" and self.tag == tag:
+                    # Cache hit
+                    is_hit = True
+                    break
+
+            if is_hit:
+                print("Cache hit")
+                self.cache_title_label.config(text="Cache Hit", fg=self.ui.font_color_1)
+                self.color_cache_row(set_start_index + line_index, self.ui.color_pink, self.ui.font_color_1)
+                data = line[3 + offset_value]  # Retrieve data from the correct byte offset
+                self.ui.window.after(2000, self.color_block_hit, set_start_index + line_index, None, data)
+            else:
+                # Cache miss
+                print("Cache miss")
+                self.cache_title_label.config(text="Cache Miss", fg=self.ui.font_color_1)
+                for line_index in range(2):  # Clear both lines in the set
+                    self.color_cache_row(set_start_index + line_index, self.ui.background_main, self.ui.font_color_1)
+                self.ui.window.after(2000, self.load_data_from_main_memory, cache_set_index, offset_value)
+
+        except Exception as e:
+            print(f"Error in check_cache_hit_or_miss_load: {e}")
+            messagebox.showerror("Error", f"An error occurred: {e}")
+
+    def color_block_hit(self,cache_index,memory_row_index,data):
+        self.color_cache_block(cache_index,  self.ui.background_main  ,self.ui.font_color_1 )
+        self.cache_title_label.config(text="Data : "+data, fg=self.ui.font_color_1)
+        print("Data : "+data)
+        self.ui.window.after(4000, self.reset_colors,cache_index,memory_row_index)
+
+    def color_block_miss(self,cache_index,memory_row_index,data):
+        self.color_cache_block(cache_index,  self.ui.color_pink  ,self.ui.font_color_1 )
+        self.cache_title_label.config(text="Data : "+data, fg=self.ui.font_color_1)
+        print("Data : "+data)
+        self.ui.window.after(4000, self.reset_colors,cache_index,memory_row_index)
+
+    def reset_colors(self,cache_index,memory_row_index):
+        if cache_index is not None:
+                set_idx = cache_index // 2  # Each set has 2 lines
+                bg_color = self.ui.row_color if set_idx % 2 == 1 else self.ui.font_color_1
+                fg_color = self.ui.background_main  # Foreground color
+                self.color_cache_row(cache_index, bg_color,fg_color)
+                self.color_main_memory_row(memory_row_index ,self.ui.font_color_1,self.ui.color_pink  )
+        self.cache_title_label.config(text="Cache Memory ", fg=self.ui.font_color_1)
+        self.tio_label.config(text="Instruction Breakdown", fg=self.ui.font_color_1)
+        binary_zero = bin(0)[2:]
+        self.update_tio(binary_zero)
+
+    def load_data_from_main_memory(self, cache_set_index, offset_value):
+        self.cache_title_label.config(text="Cache Miss: Load data from main memory", fg=self.ui.font_color_1)
+        memory_row_index = int(self.tag + self.index, 2)
+
+        if memory_row_index >= len(self.main_contents):
+            print(f"Error: Memory row index {memory_row_index} exceeds main memory size.")
+            return
+
+        memory_row = self.main_contents[memory_row_index]
+
+        if len(memory_row) <= offset_value:
+            print(f"Error: Memory row {memory_row_index} does not contain enough data.")
+            return
+
+        set_start_index = cache_set_index * 2
+        set_lines = [self.cache_contents[set_start_index], self.cache_contents[set_start_index + 1]]
+
+        replacement_line_index = None
+        for line_index, line in enumerate(set_lines):
+            if line[1] == "0":
+                replacement_line_index = set_start_index + line_index
+                break
+
+        if replacement_line_index is None:
+            replacement_line_index = set_start_index
+
+        cache_line = self.cache_contents[replacement_line_index]
+        cache_line[1] = "1"
+        cache_line[2] = self.tag
+        cache_line[-1] = "0"
+
+        for block_index in range(self.block_size):
+            if block_index < len(memory_row):
+                cache_line[3 + block_index] = memory_row[block_index]
+
+        self.update_cache_table()
+        self.color_cache_row(replacement_line_index, self.ui.background_main, self.ui.font_color_1)
+        self.color_main_memory_row(memory_row_index, self.ui.color_pink, self.ui.font_color_1)
+
+        for widget in self.main_scrollable_frame.winfo_children():
+            grid_info = widget.grid_info()
+            row = int(grid_info['row'])
+            if row == memory_row_index + 1:
+                row_height = widget.winfo_height()
+                row_y_position = row * row_height
+                self.main_canvas.yview_moveto(row_y_position / self.main_canvas.bbox("all")[3])
+
+        data = str(cache_line[3 + offset_value])
+        print(f"Loaded data from main memory block {memory_row_index} into cache line {replacement_line_index}.")
+        self.ui.window.after(4000, self.color_block_miss, replacement_line_index, memory_row_index, data)
 #---------------------------------------------------------------------------------------------------------------------
