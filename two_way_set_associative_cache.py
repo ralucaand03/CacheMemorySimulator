@@ -1,6 +1,7 @@
 import tkinter as tk
+import random
+from collections import deque
 from tkinter import ttk, messagebox
-
 class Two_way_set_associative_cache:
     def __init__(self, ui):
         self.ui = ui
@@ -16,7 +17,9 @@ class Two_way_set_associative_cache:
         self.main_canvas = None
         self.cache_title_label= "Cache Memory"
         self.tio_label = "Instruction Breakdown"
-        # Declare the variables for 2-way set-associative cache simulation
+       
+        self.replacement_array = [deque(range(2)) for _ in range(self.cache_size // self.block_size //2)]
+        #self.replacement_array = deque(range(self.cache_size // self.block_size))
         self.num_blocks = 0
         self.num_sets = 0
         self.block_offset_bits = 0
@@ -52,7 +55,7 @@ class Two_way_set_associative_cache:
         print(f"Number of blocks: {self.num_blocks}")
         print(f"Number of sets: {self.num_sets}")
         print(f"Tag bits: {self.tag_bits}")
-        print(f"Index bits: {self.index_bits}")
+        print(f"Set bits: {self.index_bits}")
         print(f"Block offset bits: {self.block_offset_bits}")
         print("------------------------------------")
         
@@ -536,6 +539,7 @@ class Two_way_set_associative_cache:
 
             # Check both lines for a cache hit
             is_hit = False
+            hit_index = None
             for line_index, line in enumerate(set_lines):
                 valid_bit = line[1]  # Valid bit
                 tag = line[2]       # Tag
@@ -543,25 +547,67 @@ class Two_way_set_associative_cache:
                 if valid_bit == "1" and self.tag == tag:
                     # Cache hit
                     is_hit = True
+                    hit_index = line_index
                     break
 
             if is_hit:
+                # Cache hit
                 print("Cache hit")
+                if self.replacement_policy == "LRU":
+                    self.replacement_array[cache_set_index].remove(hit_index)
+                    self.replacement_array[cache_set_index].append(hit_index)
+                    
+                    print(f"LRU update: {hit_index} is now most recently used")
+                    print(f"Replacement Array: {list(self.replacement_array[cache_set_index])}")
+
                 self.cache_title_label.config(text="Cache Hit", fg=self.ui.font_color_1)
                 self.color_cache_row(set_start_index + line_index, self.ui.color_pink, self.ui.font_color_1)
                 data = line[3 + offset_value]  # Retrieve data from the correct byte offset
                 self.ui.window.after(2000, self.color_block_hit, set_start_index + line_index, None, data)
             else:
                 # Cache miss
+                replacement_index = self.find_replacement_index(cache_set_index)
                 print("Cache miss")
                 self.cache_title_label.config(text="Cache Miss", fg=self.ui.font_color_1)
                 for line_index in range(2):  # Clear both lines in the set
                     self.color_cache_row(set_start_index + line_index, self.ui.background_main, self.ui.font_color_1)
-                self.ui.window.after(2000, self.load_data_from_main_memory, cache_set_index, offset_value)
+                self.ui.window.after(2000, self.load_data_from_main_memory, replacement_index, offset_value,0)
 
         except Exception as e:
             print(f"Error in check_cache_hit_or_miss_load: {e}")
             messagebox.showerror("Error", f"An error occurred: {e}")
+
+    def find_replacement_index(self,cache_set_index):
+        try:
+            if self.replacement_policy == "LRU":
+                least_recently_used = self.replacement_array[cache_set_index].popleft()  # Correct usage
+                self.replacement_array[cache_set_index].append(least_recently_used)
+                print(f"LRU replacement: Replacing index {least_recently_used}")
+                print(f"Replacement Array: {list(self.replacement_array[cache_set_index])}")
+
+                return least_recently_used
+
+            elif self.replacement_policy == "FIFO":
+                first_in = self.replacement_array[cache_set_index].popleft()  # Correct usage
+                self.replacement_array[cache_set_index].append(first_in)
+                print(f"FIFO replacement: Replacing index {first_in}")
+                print(f"Replacement Array: {list(self.replacement_array[cache_set_index])}")
+
+                return first_in
+
+            elif self.replacement_policy == "Random":
+                random_index = random.choice(range(2))
+                print(f"Random replacement: Replacing index {random_index}")
+                return random_index
+
+            else:
+                messagebox.showerror("Error", "Invalid replacement policy selected.")
+                raise ValueError("Invalid replacement policy")
+
+        except Exception as e:
+            print(f"Error in find_replacement_index: {e}")
+            messagebox.showerror("Error", f"An error occurred in find_replacement_index: {e}")
+            return None
 
     def color_block_hit(self,cache_index,memory_row_index,data):
         self.color_cache_block(cache_index,  self.ui.background_main  ,self.ui.font_color_1 )
@@ -587,54 +633,175 @@ class Two_way_set_associative_cache:
         binary_zero = bin(0)[2:]
         self.update_tio(binary_zero)
 
-    def load_data_from_main_memory(self, cache_set_index, offset_value):
-        self.cache_title_label.config(text="Cache Miss: Load data from main memory", fg=self.ui.font_color_1)
-        memory_row_index = int(self.tag + self.index, 2)
+    def load_data_from_main_memory(self, replacement_line_index, offset_value, instr):
+        try:
+            self.cache_title_label.config(text="Cache Miss: Load data from main memory", fg=self.ui.font_color_1)
+            memory_row_index = int(self.tag + self.index, 2)
 
-        if memory_row_index >= len(self.main_contents):
-            print(f"Error: Memory row index {memory_row_index} exceeds main memory size.")
-            return
+            if memory_row_index >= len(self.main_contents):
+                print(f"Error: Memory row index {memory_row_index} exceeds main memory size.")
+                return
 
-        memory_row = self.main_contents[memory_row_index]
+            memory_row = self.main_contents[memory_row_index]
 
-        if len(memory_row) <= offset_value:
-            print(f"Error: Memory row {memory_row_index} does not contain enough data.")
-            return
+            if len(memory_row) <= offset_value:
+                print(f"Error: Memory row {memory_row_index} does not contain enough data.")
+                return
 
-        set_start_index = cache_set_index * 2
-        set_lines = [self.cache_contents[set_start_index], self.cache_contents[set_start_index + 1]]
+            cache_line = self.cache_contents[replacement_line_index]
+            cache_line[1] = "1"
+            cache_line[2] = self.tag
+            cache_line[-1] = "0"
 
-        replacement_line_index = None
-        for line_index, line in enumerate(set_lines):
-            if line[1] == "0":
-                replacement_line_index = set_start_index + line_index
-                break
+            for block_index in range(self.block_size):
+                if block_index < len(memory_row):
+                    cache_line[3 + block_index] = memory_row[block_index]
 
-        if replacement_line_index is None:
-            replacement_line_index = set_start_index
+            self.update_cache_table()
+            self.color_cache_row(replacement_line_index, self.ui.background_main, self.ui.font_color_1)
+            self.color_main_memory_row(memory_row_index, self.ui.color_pink, self.ui.font_color_1)
 
-        cache_line = self.cache_contents[replacement_line_index]
-        cache_line[1] = "1"
-        cache_line[2] = self.tag
-        cache_line[-1] = "0"
+            for widget in self.main_scrollable_frame.winfo_children():
+                grid_info = widget.grid_info()
+                row = int(grid_info['row'])
+                if row == memory_row_index + 1:
+                    row_height = widget.winfo_height()
+                    row_y_position = row * row_height
+                    self.main_canvas.yview_moveto(row_y_position / self.main_canvas.bbox("all")[3])
 
-        for block_index in range(self.block_size):
-            if block_index < len(memory_row):
-                cache_line[3 + block_index] = memory_row[block_index]
+            data = str(cache_line[3 + offset_value])
+            print(f"Loaded data from main memory block {memory_row_index} into cache line {replacement_line_index}.")
+            if instr == 0:
+                self.ui.window.after(4000, self.color_block_miss, replacement_line_index, memory_row_index, data)
+            else:
+                self.cache_contents[replacement_line_index][3 + offset_value] = self.data_byte
+                self.update_cache_table()
+                self.color_cache_row(replacement_line_index, self.ui.background_main, self.ui.font_color_1)
+                self.ui.window.after(4000, self.color_block_miss,replacement_line_index,memory_row_index,self.data_byte)
+        
+        except Exception as e:
+            print(f"Error in load_data_from_main_memory: {e}")
+            messagebox.showerror("Error", f"An error occurred: {e}")
 
-        self.update_cache_table()
-        self.color_cache_row(replacement_line_index, self.ui.background_main, self.ui.font_color_1)
+#---------------------------------------------------------------------------------------------------------------------
+ # Store = Write. Saves data to memory/cache.
+    def store_instruction(self, address_binary, data_byte, addr):
+        self.data_byte = data_byte
+        print("Store at address : " + str(address_binary) + "   data : " + self.data_byte)
+        self.update_tio(address_binary)
+        self.tio_label.config(text="Instruction Breakdown for " + str(addr), fg=self.ui.font_color_1)
+        self.ui.window.after(2000, self.check_cache_hit_or_miss_store)
+
+    def check_cache_hit_or_miss_store(self):
+        try:
+            offset_value = int(self.offset, 2)  # Convert the offset to an integer
+            tag = self.tag  # Get the tag
+
+            is_hit = False
+            hit_index = None
+
+            # Search for a cache hit by comparing the tag and valid bit
+            for set_index in range(0, self.num_sets):
+                # Each set contains 2 cache lines, so we need to check both lines
+                set_start_index = set_index * 2  # 2-way set associative cache
+                set_lines = self.cache_contents[set_start_index:set_start_index + 2]  # Get the 2 cache lines in the set
+
+                for line_index, line in enumerate(set_lines):
+                    valid_bit = line[1]  # Valid bit
+                    cache_tag = line[2]  # Tag
+                    if valid_bit == "1" and cache_tag == tag:
+                        is_hit = True
+                        hit_index = set_start_index + line_index  # Record the index of the cache line
+                        break  # Exit the loop once a hit is found
+                if is_hit:
+                    break  # Exit the outer loop if a hit is found
+
+            if is_hit:
+                # Cache hit: Write data to cache
+                self.cache_title_label.config(text="Cache Hit", fg=self.ui.font_color_1)
+                self.cache_contents[hit_index][3 + offset_value] = self.data_byte  # Write data to the cache
+
+                if self.write_hit_policy == "write-back":
+                    # Write-back: Update cache only, set dirty bit
+                    print("Write-back: Writing data to cache and marking block dirty.")
+                    self.cache_contents[hit_index][3 + self.block_size] = "1"  # Set dirty bit
+                    self.update_cache_table()
+                    self.color_cache_row(hit_index, self.ui.color_pink, self.ui.font_color_1)
+                    self.ui.window.after(2000, self.color_block_hit, hit_index, None, self.data_byte)
+                else:
+                    # Write-through: Update both cache and main memory
+                    print("Write-through: Writing data to cache and main memory.")
+                    self.update_main_memory(offset_value, self.data_byte)
+                    self.update_cache_table()
+                    self.color_cache_row(hit_index, self.ui.color_pink, self.ui.font_color_1)
+                    self.ui.window.after(2000, self.color_block_hit, hit_index, None, self.data_byte)
+
+            else:
+                # Cache miss: Find the replacement index
+                self.cache_title_label.config(text="Cache Miss", fg=self.ui.font_color_1)
+
+                replacement_index = self.find_replacement_index()  # Find the index for replacement
+
+                if self.write_miss_policy == "write-allocate":
+                    # Write-Allocate: Load the block into the cache and write the data to the cache
+                    print("Write-Allocate: Load the block into the cache and write the data to cache.")
+                    # Set the dirty bit for the replacement index
+                    self.cache_contents[replacement_index][3 + self.block_size] = "1"  # Set dirty bit
+                    self.color_cache_row(replacement_index, self.ui.background_main, self.ui.font_color_1)
+                    self.ui.window.after(2000, self.load_data_from_main_memory, tag, offset_value, replacement_index, 1)
+                else:
+                    # No-Write-Allocate: Write directly to main memory
+                    print("No-Write-Allocate: Writing data directly to main memory without loading the block into cache.")
+                    self.ui.window.after(2000, self.no_write_allocate, offset_value, self.data_byte)
+
+        except Exception as e:
+            print(f"Error in check_cache_hit_or_miss_store: {e}")
+            messagebox.showerror("Error", f"An error occurred: {e}")
+
+    def update_main_memory(self, offset_value, data_byte):
+        try:
+            # Update the main memory contents
+            memory_row_index = int(self.tag + self.index, 2)  # Calculate memory row index from the tag and index
+            self.main_contents[memory_row_index][offset_value] = data_byte
+
+            print(f"Main memory updated at block {memory_row_index}, word {offset_value} with data: {data_byte}.")
+            self.update_main_memory_table()
+            self.color_main_memory_row(memory_row_index, self.ui.color_pink, self.ui.font_color_1)
+
+            # Scroll to the updated block in main memory
+            for widget in self.main_scrollable_frame.winfo_children():
+                grid_info = widget.grid_info()
+                row = int(grid_info['row'])
+
+                if row == memory_row_index + 1:  # +1 for 1-based row indexing
+                    row_height = widget.winfo_height()
+                    total_canvas_height = self.main_canvas.bbox("all")[3]
+                    row_y_position = row * row_height
+
+                    scroll_position = row_y_position / total_canvas_height
+                    self.main_canvas.yview_moveto(scroll_position)
+
+        except Exception as e:
+            print(f"Error in update_main_memory: {e}")
+            messagebox.showerror("Error", f"An error occurred while updating main memory: {e}")
+
+    def no_write_allocate(self, offset_value, data_byte):
+        # If it's a No-Write-Allocate miss policy, update the main memory directly.
+        memory_row_index = int(self.tag + self.index, 2)  # Calculate memory row index from tag and index
+        self.main_contents[memory_row_index][offset_value] = data_byte
+        print(f"No-Write-Allocate: Data written directly to main memory at {memory_row_index}, offset {offset_value}")
+        self.update_main_memory_table()
         self.color_main_memory_row(memory_row_index, self.ui.color_pink, self.ui.font_color_1)
 
+        # Scroll to the updated block in main memory
         for widget in self.main_scrollable_frame.winfo_children():
             grid_info = widget.grid_info()
             row = int(grid_info['row'])
-            if row == memory_row_index + 1:
-                row_height = widget.winfo_height()
-                row_y_position = row * row_height
-                self.main_canvas.yview_moveto(row_y_position / self.main_canvas.bbox("all")[3])
 
-        data = str(cache_line[3 + offset_value])
-        print(f"Loaded data from main memory block {memory_row_index} into cache line {replacement_line_index}.")
-        self.ui.window.after(4000, self.color_block_miss, replacement_line_index, memory_row_index, data)
-#---------------------------------------------------------------------------------------------------------------------
+            if row == memory_row_index + 1:  # +1 for 1-based row indexing
+                row_height = widget.winfo_height()
+                total_canvas_height = self.main_canvas.bbox("all")[3]
+                row_y_position = row * row_height
+
+                scroll_position = row_y_position / total_canvas_height
+                self.main_canvas.yview_moveto(scroll_position)
