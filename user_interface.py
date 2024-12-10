@@ -3,6 +3,8 @@ from tkinter import ttk, messagebox
 from simulation import Simulation
 from direct_mapped_cache import Direct_mapped_cache
 from fully_associative_cache import Fully_associative_cache
+from two_way_set_associative_cache import Two_way_set_associative_cache
+from four_way_set_associative_cache import Four_way_set_associative_cache
 class UserInterface:
     def __init__(self):
         self.window = tk.Tk()
@@ -18,6 +20,7 @@ class UserInterface:
         self.color_pink= "#E56B70"
         self.font_container = "Cascadia Code"
         self.btn_color = "#6874E8"
+        self.row_color = "#D3D3D3"
 
         # User input variables
         self.cache_size = tk.IntVar(value=16)
@@ -146,14 +149,17 @@ class UserInterface:
         algorithm_buttons_frame.grid(row=0, column=0, pady=(8,10), sticky="n")  
 
         # Create the buttons for cache algorithms
-        direct_mapped_button = tk.Button(algorithm_buttons_frame, text="Direct-Mapped Cache", command=self.direct_mapped_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=30)
+        direct_mapped_button = tk.Button(algorithm_buttons_frame, text="Direct-Mapped", command=self.direct_mapped_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=20)
         direct_mapped_button.grid(row=0, column=0, padx=5)
 
-        fully_associative_button = tk.Button(algorithm_buttons_frame, text="Fully Associative Cache", command=self.fully_associative_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=30)
+        fully_associative_button = tk.Button(algorithm_buttons_frame, text="Fully Associative", command=self.fully_associative_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=20)
         fully_associative_button.grid(row=0, column=1, padx=5)
 
-        set_associative_button = tk.Button(algorithm_buttons_frame, text="Set Associative Cache", command=self.set_associative_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=30)
-        set_associative_button.grid(row=0, column=2, padx=5)
+        two_set_associative_button = tk.Button(algorithm_buttons_frame, text="2-Way Set Associative", command=self.two_set_associative_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=20)
+        two_set_associative_button.grid(row=0, column=2, padx=5)
+              
+        four_set_associative_button = tk.Button(algorithm_buttons_frame, text="4-Way Set Associative", command=self.four_set_associative_algorithm, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 10), padx=8, pady=5, width=20)
+        four_set_associative_button.grid(row=0, column=3, padx=5)
         
         rightrow = ttk.Frame(container_right, padding="5", style="ConfigFrame.TFrame")  
         rightrow.grid(row=1, column=0, padx=5, pady=0, sticky="nsew")  
@@ -189,8 +195,15 @@ class UserInterface:
         self.cache.fully_associative()
         self.mapping()
         
-    def set_associative_algorithm(self):
-        messagebox.showinfo("Set Associative Algorithm", "You have selected the Set Associative Cache Algorithm.")
+    def two_set_associative_algorithm(self):
+        self.cache = Two_way_set_associative_cache(self)
+        self.cache.two_way_set_associative()
+        self.mapping()
+    
+    def four_set_associative_algorithm(self):
+        self.cache = Four_way_set_associative_cache(self)
+        self.cache.four_way_set_associative()
+        self.mapping()
 #---------------------------------------------------------------------------------------------------------------------
     def mapping(self):
         ttk.Label(self.configuration_container, text="Instruction:", 
