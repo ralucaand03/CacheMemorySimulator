@@ -727,12 +727,13 @@ class Fully_associative_cache:
         print(f"No-Write-Allocate: Data written directly to main memory at {memory_row_index}, offset {offset_value}")
         self.update_main_memory_table()
         self.color_main_memory_row(memory_row_index, self.ui.color_pink, self.ui.font_color_1)
+        self.cache_title_label.config(text="No-Write-Allocate: Data written directly to main memory at {memory_row_index}, offset {offset_value}", fg=self.ui.font_color_1)
 
         # Scroll to the updated block in main memory
         for widget in self.main_scrollable_frame.winfo_children():
             grid_info = widget.grid_info()
             row = int(grid_info['row'])
-
+            
             if row == memory_row_index + 1:  # +1 for 1-based row indexing
                 row_height = widget.winfo_height()
                 total_canvas_height = self.main_canvas.bbox("all")[3]
@@ -740,3 +741,5 @@ class Fully_associative_cache:
 
                 scroll_position = row_y_position / total_canvas_height
                 self.main_canvas.yview_moveto(scroll_position)
+        
+        self.ui.window.after(4000, self.reset_colors,None,memory_row_index)

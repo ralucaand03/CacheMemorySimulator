@@ -643,25 +643,17 @@ class Four_way_set_associative_cache:
         print("Data : "+data)
         self.ui.window.after(4000, self.reset_colors,cache_index,memory_row_index)
 
-    def reset_colors(self, cache_index, memory_row_index):
-        try:
-            # Color the cache row back to alternating background based on set index
-            if cache_index is not None:
-                set_idx = cache_index // 4  # Each set has 4 lines
+    def reset_colors(self,cache_index,memory_row_index):
+        if cache_index is not None:
+                set_idx = cache_index // 2  # Each set has 2 lines
                 bg_color = self.ui.row_color if set_idx % 2 == 1 else self.ui.font_color_1
                 fg_color = self.ui.background_main  # Foreground color
                 self.color_cache_row(cache_index, bg_color,fg_color)
-
-            # Reset the main memory row color with the specified color
-            self.color_main_memory_row(memory_row_index, self.ui.font_color_1, self.ui.color_pink)
-            self.cache_title_label.config(text="Cache Memory", fg=self.ui.font_color_1)
-            self.tio_label.config(text="Instruction Breakdown", fg=self.ui.font_color_1)
-            binary_zero = bin(0)[2:]  # Convert 0 to binary (without the '0b' prefix)
-            self.update_tio(binary_zero)
-        
-        except Exception as e:
-            print(f"Error in reset_colors: {e}")
-            messagebox.showerror("Error", f"An error occurred: {e}")
+        self.color_main_memory_row(memory_row_index ,self.ui.font_color_1,self.ui.color_pink  )
+        self.cache_title_label.config(text="Cache Memory ", fg=self.ui.font_color_1)
+        self.tio_label.config(text="Instruction Breakdown", fg=self.ui.font_color_1)
+        binary_zero = bin(0)[2:]
+        self.update_tio(binary_zero)
 
     def load_data_from_main_memory(self,replacement_line_index, offset_value, instr):
         try:
@@ -728,4 +720,163 @@ class Four_way_set_associative_cache:
             messagebox.showerror("Error", f"An error occurred: {e}")
 
 #---------------------------------------------------------------------------------------------------------------------
-   
+   # Store = Write. Saves data to memory/cache.
+    def store_instruction(self, address_binary, data_byte, addr):
+        self.data_byte = data_byte
+        print("Store at address : " + str(address_binary) + "   data : " + self.data_byte)
+        self.update_tio(address_binary)
+        self.tio_label.config(text="Instruction Breakdown for " + str(addr), fg=self.ui.font_color_1)
+        self.ui.window.after(2000, self.check_cache_hit_or_miss_store)
+
+  
+    def check_cache_hit_or_miss_store(self):
+        try:
+            # Calculate set index and offset
+            cache_set_index = int(self.index, 2)  # Convert index binary to integer
+            offset_value = int(self.offset, 2)   # Convert offset binary to integer
+
+            # Validate set index and offset
+            if cache_set_index >= self.num_sets:
+                raise IndexError(f"Cache set index {cache_set_index} is out of range for {self.num_sets} sets.")
+            if offset_value >= self.block_size:
+                raise ValueError(f"Offset value {offset_value} is out of range for block size {self.block_size}.")
+
+            # Access the four cache lines for the set (4-way set associative)
+            set_start_index = cache_set_index * 4  # First line in the set
+            set_lines = [
+                self.cache_contents[set_start_index],
+                self.cache_contents[set_start_index + 1],
+                self.cache_contents[set_start_index + 2],
+                self.cache_contents[set_start_index + 3]
+            ]
+
+            # Check all lines for a cache hit
+            is_hit = False
+            hit_index = None
+            for line_index, line in enumerate(set_lines):
+                valid_bit = line[1]  # Valid bit
+                tag = line[2]       # Tag
+
+                if valid_bit == "1" and self.tag == tag:
+                    # Cache hit
+                    is_hit = True
+                    hit_index = set_start_index + line_index
+                    break
+
+            if is_hit:
+                # Cache hit: Write data to cache
+                print("Cache hit")
+                self.cache_contents[hit_index][3 + offset_value] = self.data_byte  # Write data to cache
+                self.cache_title_label.config(text="Cache Hit", fg=self.ui.font_color_1)
+                if self.replacement_policy == "LRU":
+                    self.replacement_array[cache_set_index].remove(hit_index)
+                    self.replacement_array[cache_set_index].append(hit_index)
+                    
+                    print(f"LRU update: {hit_index} is now most recently used")
+                    print(f"Replacement Array: {list(self.replacement_array[cache_set_index])}")
+
+                if self.write_hit_policy == "write-back":
+                    # Write-back: Write to cache + Mark dirty bit
+                    self.cache_contents[hit_index][-1] = "1"  # Set dirty bit
+                    print("Write-back: Data written to cache and block marked dirty.")
+                else:
+                    # Write-through: Update both cache and main memory
+                    print("Write-through: Data written to cache and main memory.")
+                    self.update_main_memory(offset_value, self.data_byte)
+
+                self.update_cache_table()
+                self.color_cache_row(hit_index, self.ui.color_pink, self.ui.font_color_1)
+                self.ui.window.after(2000, self.color_block_hit, hit_index, None, self.data_byte)
+
+            else:
+                # Cache miss
+                print("Cache miss")
+                self.cache_title_label.config(text="Cache Miss", fg=self.ui.font_color_1)
+                
+                if self.write_miss_policy == "write-allocate":
+                    # Write-allocate: Load block into cache and write data
+                    print("Write-allocate: Loading block into cache and writing data.")
+                    replacement_index = self.find_replacement_index(cache_set_index)
+                    replacement_line = set_start_index + replacement_index
+                
+                    self.cache_contents[replacement_index][-1] = "1"  # Mark dirty
+                    self.color_cache_row(replacement_index, self.ui.background_main, self.ui.font_color_1)
+                    self.ui.window.after(2000, self.load_data_from_main_memory, replacement_line, offset_value, 1)
+                else:
+                    # No-write-allocate: Write directly to main memory
+                    print("No-write-allocate: Writing data directly to main memory.")
+                    self.ui.window.after(2000, self.no_write_allocate, offset_value, self.data_byte)
+
+        except Exception as e:
+            print(f"Error in check_cache_hit_or_miss_store: {e}")
+            messagebox.showerror("Error", f"An error occurred: {e}")
+
+    def update_main_memory(self, offset_value, data_byte):
+        try:
+            # Update the main memory contents
+            memory_row_index = int(self.tag + self.index, 2)  # Calculate memory row index from the tag and index
+            self.main_contents[memory_row_index][offset_value] = data_byte
+
+            print(f"Main memory updated at block {memory_row_index}, word {offset_value} with data: {data_byte}.")
+            self.update_main_memory_table()
+            self.color_main_memory_row(memory_row_index, self.ui.color_pink, self.ui.font_color_1)
+
+            # Scroll to the updated block in main memory
+            for widget in self.main_scrollable_frame.winfo_children():
+                grid_info = widget.grid_info()
+                row = int(grid_info['row'])
+
+                if row == memory_row_index + 1:  # +1 for 1-based row indexing
+                    row_height = widget.winfo_height()
+                    total_canvas_height = self.main_canvas.bbox("all")[3]
+                    row_y_position = row * row_height
+
+                    scroll_position = row_y_position / total_canvas_height
+                    self.main_canvas.yview_moveto(scroll_position)
+
+        except Exception as e:
+            print(f"Error in update_main_memory: {e}")
+            messagebox.showerror("Error", f"An error occurred while updating main memory: {e}")
+
+    def no_write_allocate(self, offset_value, data_byte):
+        try:
+            # Calculate memory row index from tag and index
+            memory_row_index = int(self.tag + self.index, 2)
+            
+            # Validate memory row index
+            if memory_row_index >= len(self.main_contents):
+                raise IndexError(f"Memory row index {memory_row_index} exceeds main memory size.")
+
+            # Update the specific byte in main memory
+            self.main_contents[memory_row_index][offset_value] = data_byte
+            print(f"No-Write-Allocate: Data written in main memory at row {memory_row_index}, offset {offset_value}")
+            
+            # Update the main memory table in the UI
+            self.update_main_memory_table()
+            self.color_main_memory_row(memory_row_index, self.ui.color_pink, self.ui.font_color_1)
+            
+            # Update the UI cache title label
+            self.cache_title_label.config(
+                text=f"No-Write-Allocate: Data written to main memory at row {memory_row_index}, offset {offset_value}",
+                fg=self.ui.font_color_1
+            )
+            
+            # Scroll to the updated block in main memory for user visibility
+            for widget in self.main_scrollable_frame.winfo_children():
+                grid_info = widget.grid_info()
+                row = int(grid_info['row'])
+                
+                if row == memory_row_index + 1:  # +1 for 1-based row indexing
+                    row_height = widget.winfo_height()
+                    total_canvas_height = self.main_canvas.bbox("all")[3]
+                    row_y_position = row * row_height
+
+                    scroll_position = row_y_position / total_canvas_height
+                    self.main_canvas.yview_moveto(scroll_position)
+            
+            # Reset colors after a delay
+            self.ui.window.after(4000, self.reset_colors, None, memory_row_index)
+
+        except Exception as e:
+            print(f"Error in no_write_allocate: {e}")
+            messagebox.showerror("Error", f"An error occurred in no_write_allocate: {e}")
