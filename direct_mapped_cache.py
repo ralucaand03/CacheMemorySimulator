@@ -524,54 +524,75 @@ class Direct_mapped_cache:
             messagebox.showerror("Error", f"An error occurred: {e}")
 
     def load_data_from_main_memory(self, cache_index,instr):
-        self.cache_title_label.config(text="Cache Miss : Load data from main memory", fg=self.ui.font_color_1)
-        memory_row_index = int(self.tag + self.index, 2)
-        
-        if memory_row_index >= len(self.main_contents):
-            print(f"Error: Memory row index {memory_row_index} exceeds main memory size.")
-            return
+        try:
+            self.cache_title_label.config(text="Cache Miss : Load data from main memory", fg=self.ui.font_color_1)
+            memory_row_index = int(self.tag + self.index, 2)
+            
+            if memory_row_index >= len(self.main_contents):
+                print(f"Error: Memory row index {memory_row_index} exceeds main memory size.")
+                return
 
-        memory_row = self.main_contents[memory_row_index]
-        if len(memory_row) <= int(self.offset, 2):
-            print(f"Error: Memory row {memory_row_index} does not contain enough data.")
-            return
-        if len(self.cache_contents[cache_index]) < 2 + self.block_size + 1:
-            print(f"Error: Cache row {cache_index} does not have enough space to store data.")
-            return
+            memory_row = self.main_contents[memory_row_index]
+            if len(memory_row) <= int(self.offset, 2):
+                print(f"Error: Memory row {memory_row_index} does not contain enough data.")
+                return
+            if len(self.cache_contents[cache_index]) < 2 + self.block_size + 1:
+                print(f"Error: Cache row {cache_index} does not have enough space to store data.")
+                return
 
-        self.cache_contents[cache_index][1] = "1"  # Set valid bit
-        self.cache_contents[cache_index][2] = self.tag  # Set tag
-        self.cache_contents[cache_index][-1] = "0"  # Set dirty bit to '0'
+            # Check if the block has been modified and needs to be written back to memory
+            if self.write_hit_policy == "write-back":
+                # If the cache block is dirty (dirty bit is 1), write back to main memory
+                if self.cache_contents[cache_index][-1] == "1" and self.cache_contents[cache_index][1]  == "1":
+                    print(f"Write-back: Writing dirty block {cache_index} back to main memory.")
+                    # Write the dirty block back to main memory
+                    # Extract the new tag and index from the cache contents
+                    new_index = self.cache_contents[cache_index][0]  # Cache's index field
+                    new_tag = self.cache_contents[cache_index][2]  # Cache's tag field
+                    new_memory_row_index = int(new_tag + new_index, 2) 
+                    for block in range(self.block_size):
+                       self.main_contents[new_memory_row_index][block] = self.cache_contents[cache_index][3 + block]
+                    self.update_main_memory_table()   
+                    print(f"Data from cache index {cache_index} written back to memory row {new_memory_row_index}.")
 
-        for block in range(self.block_size):
-            if block < len(memory_row): 
-                self.cache_contents[cache_index][3 + block] = memory_row[block] 
-            else:
-                print(f"Error: Block {block} is out of range for memory row {memory_row_index}")
 
-        self.update_cache_table()
-        self.color_cache_row(cache_index,self.ui.background_main  ,self.ui.font_color_1 )
-        # Highlight the row and scroll to it
-        self.color_main_memory_row(memory_row_index,self.ui.color_pink  ,self.ui.font_color_1 )
-        for widget in self.main_scrollable_frame.winfo_children():
-            grid_info = widget.grid_info()
-            row = int(grid_info['row'])  
-            if row == memory_row_index + 1: 
-                row_height = widget.winfo_height() 
-                row_y_position = row * row_height  
-                self.main_canvas.yview_moveto(row_y_position / self.main_canvas.bbox("all")[3]) 
-        offset_value = int(self.offset)  
-        data = str(self.cache_contents[cache_index][3 + offset_value])
-             
-        print(f"Loaded data from main memory block {memory_row_index} to cache index {cache_index}.")
-        if instr == 0:
-            self.ui.window.after(4000, self.color_block_miss,cache_index,memory_row_index,data)
-        else:
-            self.cache_contents[cache_index][3 + offset_value] = self.data_byte
+            # Proceed with loading the new data into the cache
+            self.cache_contents[cache_index][1] = "1"  # Set valid bit
+            self.cache_contents[cache_index][2] = self.tag  # Set tag
+            self.cache_contents[cache_index][-1] = "0"  # Set dirty bit to '0'
+
+            for block in range(self.block_size):
+                if block < len(memory_row): 
+                    self.cache_contents[cache_index][3 + block] = memory_row[block] 
+                else:
+                    print(f"Error: Block {block} is out of range for memory row {memory_row_index}")
+
             self.update_cache_table()
             self.color_cache_row(cache_index,self.ui.background_main  ,self.ui.font_color_1 )
-        
-            self.ui.window.after(4000, self.color_block_miss,cache_index,memory_row_index,self.data_byte)
+            self.color_main_memory_row(memory_row_index,self.ui.color_pink  ,self.ui.font_color_1 )
+            for widget in self.main_scrollable_frame.winfo_children():
+                grid_info = widget.grid_info()
+                row = int(grid_info['row'])  
+                if row == memory_row_index + 1: 
+                    row_height = widget.winfo_height() 
+                    row_y_position = row * row_height  
+                    self.main_canvas.yview_moveto(row_y_position / self.main_canvas.bbox("all")[3]) 
+            offset_value = int(self.offset)  
+            data = str(self.cache_contents[cache_index][3 + offset_value])
+                
+            print(f"Loaded data from main memory block {memory_row_index} to cache index {cache_index}.")
+            
+            if instr == 0:
+                self.ui.window.after(4000, self.color_block_miss,cache_index,memory_row_index,data)
+            else:
+                self.cache_contents[cache_index][-1] = "1"
+                self.cache_contents[cache_index][3 + offset_value] = self.data_byte
+                self.update_cache_table()
+                self.color_cache_row(cache_index,self.ui.background_main  ,self.ui.font_color_1 )
+                self.ui.window.after(4000, self.color_block_miss,cache_index,memory_row_index,self.data_byte)
+        except Exception as e:
+            print(f"Error in load_data_from_main_memory: {e}")
+            messagebox.showerror("Error", f"An error occurred: {e}")
 
     def color_block_miss(self,cache_index,memory_row_index,data):
         self.color_cache_block(cache_index,  self.ui.color_pink  ,self.ui.font_color_1 )
@@ -651,7 +672,7 @@ class Direct_mapped_cache:
                 self.cache_title_label.config(text="Cache Miss", fg=self.ui.font_color_1)
                 if(self.write_miss_policy=="write-allocate"):
                     #Write-Allocate: Load the block into the cache and write the data to the cache:
-                    self.cache_contents[cache_index][3 + self.block_size] = "1"
+                    
                     print("Write-Allocate: Load the block into the cache and write the data to cache memory.")
                     self.color_cache_row(cache_index, self.ui.background_main, self.ui.font_color_1)
                     self.ui.window.after(2000, self.load_data_from_main_memory, cache_index,1)

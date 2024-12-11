@@ -529,6 +529,21 @@ class Fully_associative_cache:
                 print(f"Error: Memory row {memory_row_index} does not contain enough data.")
                 return
             
+            # Check if the block has been modified and needs to be written back to memory
+            if self.write_hit_policy == "write-back":
+                # If the cache block is dirty (dirty bit is 1), write back to main memory
+                if self.cache_contents[replacement_index][-1] == "1" and self.cache_contents[replacement_index][1]  == "1":
+                    print(f"Write-back: Writing dirty block {replacement_index} back to main memory.")
+                    # Write the dirty block back to main memory
+                    # Extract the new tag and index from the cache contents
+                    new_index = self.cache_contents[replacement_index][0]  # Cache's index field
+                    new_tag = self.cache_contents[replacement_index][2]  # Cache's tag field
+                    new_memory_row_index = int(new_tag + new_index, 2) 
+                    for block in range(self.block_size):
+                       self.main_contents[new_memory_row_index][block] = self.cache_contents[replacement_index][3 + block]
+                    self.update_main_memory_table()   
+                    print(f"Data from cache index {replacement_index} written back to memory row {new_memory_row_index}.")
+
             # Update cache contents
             self.cache_contents[replacement_index][1] = "1"  # Set valid bit
             self.cache_contents[replacement_index][2] = tag  # Set tag
@@ -561,6 +576,7 @@ class Fully_associative_cache:
             if instr == 0:
                 self.ui.window.after(4000, self.color_block_miss,replacement_index,memory_row_index,data)
             else:
+                self.cache_contents[replacement_index][-1] = "1"
                 self.cache_contents[replacement_index][3 + offset_value] = self.data_byte
                 self.update_cache_table()
                 self.color_cache_row(replacement_index, self.ui.background_main, self.ui.font_color_1)
@@ -655,7 +671,12 @@ class Fully_associative_cache:
                 # Cache hit: Write data to cache
                 self.cache_title_label.config(text="Cache Hit", fg=self.ui.font_color_1)
                 self.cache_contents[hit_index][3 + offset_value] = self.data_byte  # Write data to the cache
-                
+                if self.replacement_policy == "LRU":
+                    self.replacement_array.remove(hit_index)
+                    self.replacement_array.append(hit_index)
+                    print(f"LRU update: {hit_index} is now most recently used")
+                    print(f"Replacement Array: {list(self.replacement_array)}")
+
                 if self.write_hit_policy == "write-back":
                     # Write-back: Update cache only, set dirty bit
                     print("Write-back: Writing data to cache and marking block dirty.")

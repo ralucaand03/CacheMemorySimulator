@@ -566,15 +566,16 @@ class Four_way_set_associative_cache:
                     # Cache hit
                     is_hit = True
                     hit_index = line_index
+                    hit_line = line_index
                     break
 
             if is_hit:
                 print("Cache hit")
                 if self.replacement_policy == "LRU":
-                    self.replacement_array[cache_set_index].remove(hit_index)
-                    self.replacement_array[cache_set_index].append(hit_index)
+                    self.replacement_array[cache_set_index].remove(hit_line)
+                    self.replacement_array[cache_set_index].append(hit_line)
                     
-                    print(f"LRU update: {hit_index} is now most recently used")
+                    print(f"LRU update: {hit_line} is now most recently used")
                     print(f"Replacement Array: {list(self.replacement_array[cache_set_index])}")
 
                 self.cache_title_label.config(text="Cache Hit", fg=self.ui.font_color_1)
@@ -589,10 +590,12 @@ class Four_way_set_associative_cache:
                 print("Cache miss")
                 self.cache_title_label.config(text="Cache Miss", fg=self.ui.font_color_1)
                 # Clear all rows in the set
+                replacement_line = set_start_index + replacement_index
+                
                 for line_index in range(4):  # Clear all 4 lines in the set
                     self.color_cache_row(set_start_index + line_index, self.ui.background_main, self.ui.font_color_1)
                 # Simulate loading data from main memory
-                self.ui.window.after(2000, self.load_data_from_main_memory, replacement_index, offset_value,0)
+                self.ui.window.after(2000, self.load_data_from_main_memory, replacement_line, offset_value,0)
 
         except Exception as e:
             print(f"Error in check_cache_hit_or_miss_load: {e}")
@@ -645,7 +648,7 @@ class Four_way_set_associative_cache:
 
     def reset_colors(self,cache_index,memory_row_index):
         if cache_index is not None:
-                set_idx = cache_index // 2  # Each set has 2 lines
+                set_idx = cache_index //  4
                 bg_color = self.ui.row_color if set_idx % 2 == 1 else self.ui.font_color_1
                 fg_color = self.ui.background_main  # Foreground color
                 self.color_cache_row(cache_index, bg_color,fg_color)
@@ -674,8 +677,23 @@ class Four_way_set_associative_cache:
             if len(memory_row) <= offset_value:
                 print(f"Error: Memory row {memory_row_index} does not contain enough data.")
                 return
+            
+            # Check if the block has been modified and needs to be written back to memory
+            if self.write_hit_policy == "write-back":
+                # If the cache block is dirty (dirty bit is 1), write back to main memory
+                if self.cache_contents[replacement_line_index][-1] == "1" and self.cache_contents[replacement_line_index][1]  == "1":
+                    print(f"Write-back: Writing dirty block {replacement_line_index} back to main memory.")
+                    # Write the dirty block back to main memory
+                    # Extract the new tag and index from the cache contents
+                    new_index = self.cache_contents[replacement_line_index][0]  # Cache's index field
+                    new_tag = self.cache_contents[replacement_line_index][2]  # Cache's tag field
+                    new_memory_row_index = int(new_tag + new_index, 2) 
+                    for block in range(self.block_size):
+                       self.main_contents[new_memory_row_index][block] = self.cache_contents[replacement_line_index][3 + block]
+                    self.update_main_memory_table()   
+                    print(f"Data from cache index {replacement_line_index} written back to memory row {new_memory_row_index}.")
 
-            # Replace the cache line
+            # Proceed with loading the new data into the cache
             cache_line = self.cache_contents[replacement_line_index]
             cache_line[1] = "1"  # Set the valid bit to "1" (mark as valid)
             cache_line[2] = self.tag  # Set the tag
@@ -710,6 +728,7 @@ class Four_way_set_associative_cache:
             if instr == 0:
                     self.ui.window.after(4000, self.color_block_miss, replacement_line_index, memory_row_index, data)
             else:
+                    self.cache_contents[replacement_line_index][-1] = "1"
                     self.cache_contents[replacement_line_index][3 + offset_value] = self.data_byte
                     self.update_cache_table()
                     self.color_cache_row(replacement_line_index, self.ui.background_main, self.ui.font_color_1)
@@ -761,18 +780,20 @@ class Four_way_set_associative_cache:
                     # Cache hit
                     is_hit = True
                     hit_index = set_start_index + line_index
+                    hit_line = line_index
                     break
 
             if is_hit:
                 # Cache hit: Write data to cache
                 print("Cache hit")
+                print (cache_set_index)
                 self.cache_contents[hit_index][3 + offset_value] = self.data_byte  # Write data to cache
                 self.cache_title_label.config(text="Cache Hit", fg=self.ui.font_color_1)
                 if self.replacement_policy == "LRU":
-                    self.replacement_array[cache_set_index].remove(hit_index)
-                    self.replacement_array[cache_set_index].append(hit_index)
+                    self.replacement_array[cache_set_index].remove(hit_line)
+                    self.replacement_array[cache_set_index].append(hit_line)
                     
-                    print(f"LRU update: {hit_index} is now most recently used")
+                    print(f"LRU update: {hit_line} is now most recently used")
                     print(f"Replacement Array: {list(self.replacement_array[cache_set_index])}")
 
                 if self.write_hit_policy == "write-back":
@@ -798,8 +819,6 @@ class Four_way_set_associative_cache:
                     print("Write-allocate: Loading block into cache and writing data.")
                     replacement_index = self.find_replacement_index(cache_set_index)
                     replacement_line = set_start_index + replacement_index
-                
-                    self.cache_contents[replacement_index][-1] = "1"  # Mark dirty
                     self.color_cache_row(replacement_index, self.ui.background_main, self.ui.font_color_1)
                     self.ui.window.after(2000, self.load_data_from_main_memory, replacement_line, offset_value, 1)
                 else:

@@ -547,17 +547,16 @@ class Two_way_set_associative_cache:
                 if valid_bit == "1" and self.tag == tag:
                     # Cache hit
                     is_hit = True
-                    hit_index = line_index
+                    hit_line = line_index
                     break
 
             if is_hit:
                 # Cache hit
                 print("Cache hit")
                 if self.replacement_policy == "LRU":
-                    self.replacement_array[cache_set_index].remove(hit_index)
-                    self.replacement_array[cache_set_index].append(hit_index)
-                    
-                    print(f"LRU update: {hit_index} is now most recently used")
+                    self.replacement_array[cache_set_index].remove(hit_line)
+                    self.replacement_array[cache_set_index].append(hit_line)
+                    print(f"LRU update: {hit_line} is now most recently used")
                     print(f"Replacement Array: {list(self.replacement_array[cache_set_index])}")
 
                 self.cache_title_label.config(text="Cache Hit", fg=self.ui.font_color_1)
@@ -650,6 +649,24 @@ class Two_way_set_associative_cache:
                 return
 
             cache_line = self.cache_contents[replacement_line_index]
+            
+            # Check if the block has been modified and needs to be written back to memory
+            if self.write_hit_policy == "write-back":
+                # If the cache block is dirty (dirty bit is 1), write back to main memory
+                if self.cache_contents[replacement_line_index][-1] == "1" and self.cache_contents[replacement_line_index][1]  == "1":
+                    print(f"Write-back: Writing dirty block {replacement_line_index} back to main memory.")
+                    # Write the dirty block back to main memory
+                    # Extract the new tag and index from the cache contents
+                    new_index = self.cache_contents[replacement_line_index][0]  # Cache's index field
+                    new_tag = self.cache_contents[replacement_line_index][2]  # Cache's tag field
+                    new_memory_row_index = int(new_tag + new_index, 2) 
+                    for block in range(self.block_size):
+                       self.main_contents[new_memory_row_index][block] = self.cache_contents[replacement_line_index][3 + block]
+                    self.update_main_memory_table()   
+                    print(f"Data from cache index {replacement_line_index} written back to memory row {new_memory_row_index}.")
+
+
+            # Proceed with loading the new data into the cache
             cache_line[1] = "1"
             cache_line[2] = self.tag
             cache_line[-1] = "0"
@@ -675,6 +692,7 @@ class Two_way_set_associative_cache:
             if instr == 0:
                 self.ui.window.after(4000, self.color_block_miss, replacement_line_index, memory_row_index, data)
             else:
+                self.cache_contents[replacement_line_index][-1] = "1"
                 self.cache_contents[replacement_line_index][3 + offset_value] = self.data_byte
                 self.update_cache_table()
                 self.color_cache_row(replacement_line_index, self.ui.background_main, self.ui.font_color_1)
@@ -692,7 +710,6 @@ class Two_way_set_associative_cache:
         self.update_tio(address_binary)
         self.tio_label.config(text="Instruction Breakdown for " + str(addr), fg=self.ui.font_color_1)
         self.ui.window.after(2000, self.check_cache_hit_or_miss_store)
-
   
     def check_cache_hit_or_miss_store(self):
         try:
@@ -721,6 +738,7 @@ class Two_way_set_associative_cache:
                     # Cache hit
                     is_hit = True
                     hit_index = set_start_index + line_index
+                    hit_line = line_index
                     break
 
             if is_hit:
@@ -729,10 +747,9 @@ class Two_way_set_associative_cache:
                 self.cache_contents[hit_index][3 + offset_value] = self.data_byte  # Write data to cache
                 self.cache_title_label.config(text="Cache Hit", fg=self.ui.font_color_1)
                 if self.replacement_policy == "LRU":
-                    self.replacement_array[cache_set_index].remove(hit_index)
-                    self.replacement_array[cache_set_index].append(hit_index)
-                    
-                    print(f"LRU update: {hit_index} is now most recently used")
+                    self.replacement_array[cache_set_index].remove(hit_line)
+                    self.replacement_array[cache_set_index].append(hit_line)
+                    print(f"LRU update: {hit_line} is now most recently used")
                     print(f"Replacement Array: {list(self.replacement_array[cache_set_index])}")
 
                 if self.write_hit_policy == "write-back":
@@ -754,11 +771,11 @@ class Two_way_set_associative_cache:
                 self.cache_title_label.config(text="Cache Miss", fg=self.ui.font_color_1)
 
                 if self.write_miss_policy == "write-allocate":
-                    # Write-allocate: Load block into cache and write data
-                    print("Write-allocate: Loading block into cache and writing data.")
+                    #Write-Allocate: Load the block into the cache and write the data to the cache + dirty =1:
                     replacement_index = self.find_replacement_index(cache_set_index)
                     replacement_line = set_start_index + replacement_index
-               
+                    self.cache_contents[replacement_index][3 + self.block_size] = "1"
+             
                     self.cache_contents[replacement_index][-1] = "1"  # Mark dirty
                     self.color_cache_row(replacement_index, self.ui.background_main, self.ui.font_color_1)
                     self.ui.window.after(2000, self.load_data_from_main_memory, replacement_line, offset_value, 1)
@@ -770,6 +787,7 @@ class Two_way_set_associative_cache:
         except Exception as e:
             print(f"Error in check_cache_hit_or_miss_store: {e}")
             messagebox.showerror("Error", f"An error occurred: {e}")
+  
     def update_main_memory(self, offset_value, data_byte):
         try:
             # Update the main memory contents
