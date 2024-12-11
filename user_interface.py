@@ -9,7 +9,7 @@ class UserInterface:
     def __init__(self):
         self.window = tk.Tk()
         self.window.title("Cache Simulator Simulator")
-        self.window.geometry("1080x600")
+        self.window.geometry("1080x1000")
         self.window.configure(bg="#23967F")
         self.center_window()
 
@@ -44,7 +44,7 @@ class UserInterface:
         screen_height = self.window.winfo_screenheight()
         
         window_width = 1380
-        window_height = 600
+        window_height = 640
 
         position_top = int(screen_height / 2 - window_height / 2)
         position_right = int(screen_width / 2 - window_width / 2)
@@ -141,9 +141,10 @@ class UserInterface:
         tk.Entry(self.configuration_container, textvariable=self.input, width=entry_width).grid(row=8, column=1)
 
         # Place the `Run Simulation` button in the third row of `container_left`
-        run_button = tk.Button(container_left, text="Run Simulation", command=self.run_simulation, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 12), padx=15, pady=8)
-        run_button.grid(row=2, column=0, columnspan=2, pady=15) 
-
+        run_button = tk.Button(container_left, text="Run Simulation", command=self.run_simulation, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 12), padx=20, pady=6)
+        run_button.grid(row=2, column=0, columnspan=2, pady=10) 
+        reset_button = tk.Button(container_left, text="Reset", command=self.reset_simulation, bg=self.btn_color, fg="white", activebackground="#505FC4", activeforeground="white", font=(self.font_container, 12), padx=60, pady=6)
+        reset_button.grid(row=3, column=0, columnspan=2, pady=1)
         # Add buttons for the different cache algorithms in `container_right`
         algorithm_buttons_frame = ttk.Frame(container_right, padding="16", style="MainFrame.TFrame")
         algorithm_buttons_frame.grid(row=0, column=0, pady=(8,10), sticky="n")  
@@ -183,7 +184,6 @@ class UserInterface:
         self.cache_memory_container.grid(row=2, column=0, sticky="nsew", padx=20, pady=15)  
 
 #---------------------------------------------------------------------------------------------------------------------
-
 
     def direct_mapped_algorithm(self):
         self.cache = Direct_mapped_cache(self)
@@ -288,7 +288,9 @@ class UserInterface:
         values.pop(0)
         return ','.join(values)
 
-
+    def reset_simulation(self):
+        print("RESET")
+        self.setup_ui()
  #---------------------------------------------------------------------------------------------------------------------
 
     def run_simulation(self):
