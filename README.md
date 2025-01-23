@@ -41,9 +41,9 @@
 
 |  Load - Direct mapped Configuration|  Cache Miss - 2-Way Set  |
 | :------------: | :------------: |
-|![Login](./images/direct-load.png) | ![HomePage](./images/2way-miss.png)  |
+|![Login](./Images/direct-load.png) | ![HomePage](./Images/2way-miss.png)  |
 |  Cache Hit - Fully Associative Configuration| Testing LRU algorithm |
-|![Login](./images/fully-hit.png)  | ![HomePage](./images/lru.png)  |
+|![Login](./Images/fully-hit.png)  | ![HomePage](./Images/lru.png)  |
 
 
 ---
