@@ -7,6 +7,8 @@
 
 🌛This tool is ideal for educational purposes or performance analysis, allowing users to observe how cache management strategies affect memory access patterns and optimize performance.
 
+---
+
 ## ☄️ Features
 
 - **🧑‍💻 User Interface**: 
@@ -34,6 +36,17 @@
 - **🎨 Visual Feedback**:
   - Cache memory states are displayed in real-time, indicating cache hits and misses, and showing the modifications of data in both the cache and memory.
 
+---
+## 🌷 Screenshots 
+
+|  Load - Direct mapped Configuration|  Cache Miss - 2-Way Set  |
+| :------------: | :------------: |
+|![Login](./images/direct-load.png) | ![HomePage](./images/2way-miss.png)  |
+|  Cache Hit - Fully Associative Configuration| Testing LRU algorithm |
+|![Login](./images/fully-hit.png)  | ![HomePage](./images/lru.png)  |
+
+
+---
 ## 🔍 Prerequisites
 
 To run this simulator, you'll need:
@@ -53,6 +66,9 @@ To run this simulator, you'll need:
 3. Run the simulator using:
      ```bash
      python main.py
+
+---
+
 ## 🧑‍💻 Usage
 - **LOAD Operation:**
 
@@ -61,6 +77,8 @@ For loading values into the cache, input memory addresses in the form address1,a
 - **STORE Operation:**
 
 For storing data at specific memory addresses, input memory address-data pairs in the form address1-data1,address2-data2,....
+
+---
 
 ## 💡 Tips
 Ensure that the input format strictly follows the hexadecimal address and data format to avoid any errors during simulation.
